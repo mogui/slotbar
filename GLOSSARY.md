@@ -14,3 +14,9 @@ _Avoid_: popup, browser window
 
 **Keep-alive**
 A per-Slot setting: a kept-alive Slot stays loaded while the Panel is hidden so it can deliver notifications and unread counts; otherwise it loads only when opened.
+
+**Home host**
+The host of a Slot's starting URL. Main-frame navigations to it stay in the Slot; navigations to other hosts go to a Slot of the same Profile with that home host, or to the default browser.
+
+**Sign-in mode**
+A temporary Slot state entered when the Slot navigates to a Google sign-in host; while active, every navigation and popup stays in the Slot, until it is back on its home host or ten minutes pass.
