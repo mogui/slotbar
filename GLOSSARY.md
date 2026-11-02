@@ -1,11 +1,11 @@
 # Glossary
 
 **Slot**
-A fixed pairing of one web service (Gmail, Google Calendar, Google Chat) with one Profile, bound to a position N reachable with `Cmd+N`.
-_Avoid_: tab
+A configured pairing of a starting URL with one Profile. Its position in the ordered Slot list is N; the first nine are reachable with `Cmd+1..9`. Several Slots may share the same URL and Profile.
+_Avoid_: tab, service
 
 **Profile**
-An isolated browsing session tied to one Google account. Several Slots can share one Profile; Slots in different Profiles never share cookies or storage.
+An isolated browsing session tied to one Google account, identified by a name and a color. Several Slots can share one Profile; Slots in different Profiles never share cookies or storage.
 _Avoid_: session, account
 
 **Panel**
