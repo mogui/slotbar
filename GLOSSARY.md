@@ -9,7 +9,7 @@ An isolated browsing session tied to one Google account, identified by a name an
 _Avoid_: session, account
 
 **Panel**
-The window that slides in from a configurable screen edge on the global hotkey or a click on the status bar icon, and shows the active Slot.
+The window that slides in from a configurable screen edge, on the screen under the pointer, on the global hotkey or a click on the status bar icon; it shows the Rail and the active Slot.
 _Avoid_: popup, browser window
 
 **Keep-alive**
@@ -24,3 +24,11 @@ A temporary Slot state entered when the Slot navigates to a Google sign-in host;
 **Unloaded**
 The state of a Slot whose page has been destroyed to free memory; it keeps only its settings and, until app quit, its last URL on its home host, where it reopens.
 _Avoid_: suspended, sleeping
+
+**Rail**
+The always-visible strip along the Panel's outer side holding one icon per Slot in list order (favicon, Profile-color indicator, unread badge); clicking an icon makes its Slot active, right-clicking offers Go home, Open current page in browser and Reload.
+_Avoid_: tab bar, sidebar, dock
+
+**Child window**
+A native titled window opened by a Slot for a popup that stays in the app (same Profile, real `window.opener`); it floats with the Panel, hides and reappears with it, and closes when its Slot is unloaded, crashes or is deleted.
+_Avoid_: popup, tab
