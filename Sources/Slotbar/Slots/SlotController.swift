@@ -120,14 +120,15 @@ final class SlotController: NSObject, WKNavigationDelegate {
         lifecycle.unloaded()
     }
 
-    /// URL or Profile edited in Settings (SPEC 10.3): Child windows close and the reopen URL is cleared
-    /// (`AppDelegate.apply` deletes the favicon). A loaded Slot gets a new webview at the new URL, on the
+    /// URL or Profile edited in Settings (SPEC 10.3): Child windows close, the reopen URL is cleared and
+    /// Sign-in mode ends, so routing uses the new Home host at once (`AppDelegate.apply` deletes the favicon). A loaded Slot gets a new webview at the new URL, on the
     /// new Profile's store and with the Unread adapter for the new Home host; an Unloaded one loads it on next open.
     private func startChanged() {
         let wasLoaded = webView != nil
         releaseWebView()
         lastURL = nil
         lastIconURL = nil
+        signInMode = SignInMode()
         guard wasLoaded else { return }
         load(at: slot.url)
         onUnreadChange?()
