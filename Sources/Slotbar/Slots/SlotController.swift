@@ -204,7 +204,7 @@ final class SlotController: NSObject, WKNavigationDelegate {
                    action: WKNavigationAction, features: WKWindowFeatures) -> WKWebView? {
         let route = popupRoute(url: action.request.url, openerURL: opener.url, from: slot, slots: slots,
                                inSignInMode: isInSignInMode,
-                               opensOutside: action.modifierFlags.contains(.command) || action.buttonNumber == 1)
+                               opensOutside: action.opensOutside)
         #if DEBUG
         log.debug("Popup \(action.request.url?.absoluteString ?? "", privacy: .public) from Slot \(self.slot.id, privacy: .public): \(String(describing: route), privacy: .public)")
         #endif
@@ -328,7 +328,7 @@ final class SlotController: NSObject, WKNavigationDelegate {
             nextLoadIsOwn = false
         }
         let request = NavigationRequest(url: url, isMainFrame: frame.isMainFrame, isExempt: isExempt,
-                                        opensOutside: action.modifierFlags.contains(.command) || action.buttonNumber == 1)
+                                        opensOutside: action.opensOutside)
         let route = NavigationRouter.route(request, from: slot, slots: slots, inSignInMode: isInSignInMode)
         #if DEBUG
         if frame.isMainFrame {
@@ -421,4 +421,9 @@ private final class WeakScriptHandler: NSObject, WKScriptMessageHandler {
             controller.iconLinkReported(message.body)
         }
     }
+}
+
+extension WKNavigationAction {
+    /// Cmd-click or middle-click (SPEC 7.1).
+    var opensOutside: Bool { modifierFlags.contains(.command) || buttonNumber == 1 }
 }
