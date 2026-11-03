@@ -63,6 +63,16 @@ final class PanelController {
         log.debug("Panel shown")
     }
 
+    /// Makes the Slot active, showing the Panel if it is hidden.
+    func show(slot id: UUID) {
+        if window.isVisible {
+            activate(id)
+        } else {
+            activeSlot = id
+            show()
+        }
+    }
+
     func hide() {
         window.orderOut(nil)
         log.debug("Panel hidden")

@@ -48,9 +48,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 existing.slot = slot
                 return existing
             }
-            return SlotController(slot: slot, stores: profileStores)
+            let controller = SlotController(slot: slot, stores: profileStores)
+            controller.onRoute = { [weak self] id, url in self?.openRouted(id, url) }
+            return controller
         }
+        for controller in slotControllers { controller.slots = settings.slots }
         panelController?.update(settings: settings, controllers: slotControllers)
+    }
+
+    /// A routed link: load the target Slot at the URL (creating its webview when Unloaded) and show it (SPEC 6.2).
+    private func openRouted(_ id: UUID, _ url: URL) {
+        guard let controller = slotControllers.first(where: { $0.slot.id == id }) else { return }
+        controller.load(at: url)
+        panelController?.show(slot: id)
     }
 
     @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
