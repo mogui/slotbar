@@ -93,3 +93,14 @@ extension Settings {
         )
     }
 }
+
+extension Settings {
+    /// Sets a null label to `<page title> - <Profile name>`; set labels stay frozen, a blank title waits for the next load (SPEC 3.1).
+    mutating func applyAutoLabel(slotId: UUID, pageTitle: String) {
+        let title = pageTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty,
+              let index = slots.firstIndex(where: { $0.id == slotId }), slots[index].label == nil,
+              let profile = profiles.first(where: { $0.id == slots[index].profileId }) else { return }
+        slots[index].label = "\(title) - \(profile.name)"
+    }
+}

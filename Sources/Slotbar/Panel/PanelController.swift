@@ -6,6 +6,7 @@ private let log = Log.logger("Panel")
 @MainActor
 final class PanelController {
     private let window = PanelWindow()
+    private let favicons: FaviconCache
     private let rail = RailView()
     private let slotArea = NSView()
     private let emptyState = PanelController.makeEmptyState()
@@ -14,7 +15,8 @@ final class PanelController {
     /// Last active Slot, in memory only (SPEC 4.5).
     private var activeSlot: UUID?
 
-    init() {
+    init(favicons: FaviconCache) {
+        self.favicons = favicons
         let content = NSView()
         content.wantsLayer = true
         content.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
@@ -85,9 +87,9 @@ final class PanelController {
         refreshRail()
     }
 
-    private func refreshRail() {
+    func refreshRail() {
         guard let settings else { return }
-        rail.update(items: railItems(settings: settings, activeSlot: activeSlot))
+        rail.update(items: railItems(settings: settings, activeSlot: activeSlot)) { [favicons] in favicons.image(for: $0) }
     }
 
     /// Right edge only for now: the Rail sits on the outer (right) side.
