@@ -14,8 +14,8 @@ final class NotificationBridge: NSObject {
     var loadedSlots: () -> [Slot] = { [] }
     /// The Slot the Panel shows while on screen, else nil.
     var panelShowingSlot: () -> UUID? = { nil }
-    /// Shows the Panel on a Slot through the normal show path; returns its webview once loaded.
-    var showSlot: (UUID) -> WKWebView? = { _ in nil }
+    /// Shows the Panel on a Slot through the normal show path.
+    var showSlot: (UUID) -> Void = { _ in }
 
     /// Where a native id was raised, to call its `onclick`.
     private struct Origin {
@@ -126,8 +126,10 @@ final class NotificationBridge: NSObject {
     }
 
     private func clicked(slotId: UUID, pageId: String, nativeId: String) {
-        let webView = showSlot(slotId)
-        guard let origin = origins[nativeId], let originWebView = origin.webView, originWebView === webView else { return }
+        showSlot(slotId)
+        // The originating webview (the Slot's or one of its Child windows') must still belong to the Slot.
+        guard let origin = origins[nativeId], let originWebView = origin.webView,
+              slotForWebView(originWebView)?.id == slotId else { return }
         // The shim checks the page id, so a reloaded page ignores the click.
         originWebView.callAsyncJavaScript(
             "return window.__slotbarNotificationClicked?.(id, pageId) ?? false",
