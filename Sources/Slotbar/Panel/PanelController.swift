@@ -1,4 +1,5 @@
 import AppKit
+import WebKit
 
 private let log = Log.logger("Panel")
 
@@ -84,6 +85,21 @@ final class PanelController: NSObject {
         case .makeKey: window.makeKey()
         case .hide: hide()
         }
+    }
+
+    /// The Slot the Panel shows while on screen, else nil.
+    var visibleSlot: UUID? {
+        isShowing ? activeSlot : nil
+    }
+
+    /// Shows the Panel on a Slot (loading it if Unloaded) and returns that Slot's webview.
+    @discardableResult
+    func show(slot id: UUID) -> WKWebView? {
+        let wasShowing = isShowing
+        activeSlot = id
+        show()
+        if wasShowing { activate(id) }
+        return controllers.first { $0.slot.id == id }?.webView
     }
 
     func show() {

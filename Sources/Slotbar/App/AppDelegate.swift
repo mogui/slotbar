@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsStore: SettingsStore?
     private var hotkey: Hotkey?
     private let profileStores = ProfileStores()
+    private let notificationBridge = NotificationBridge()
     /// One per Slot, in list order.
     private var slotControllers: [SlotController] = []
     private var settingsWindow: NSWindow?
@@ -22,6 +23,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.onSlotAction = { [weak self] id, action in self?.perform(action, on: id) }
         panelController = panel
         hotkey = Hotkey { panel.toggle() }
+        notificationBridge.slotForWebView = { [weak self] webView in
+            self?.slotControllers.first { $0.webView === webView }?.slot
+        }
+        notificationBridge.loadedSlots = { [weak self] in
+            self?.slotControllers.filter { $0.webView != nil }.map(\.slot) ?? []
+        }
+        notificationBridge.panelShowingSlot = { panel.visibleSlot }
+        notificationBridge.showSlot = { panel.show(slot: $0) }
+        notificationBridge.requestAuthorizationIfNeeded()
         apply(store.settings)
         store.observe { [weak self] settings in self?.apply(settings) }
         let launchIds = slotsLoadedAtLaunch(store.settings.slots)
@@ -47,12 +57,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Keeps one SlotController per Slot (reused by id) and hands them to the Panel.
     private func apply(_ settings: Settings) {
+        let remaining = Set(settings.slots.map(\.id))
+        notificationBridge.removeDelivered(slotIds: Set(slotControllers.map(\.slot.id)).subtracting(remaining))
         slotControllers = settings.slots.map { slot in
             if let existing = slotControllers.first(where: { $0.slot.id == slot.id }) {
                 existing.slot = slot
                 return existing
             }
-            return SlotController(slot: slot, stores: profileStores)
+            return SlotController(slot: slot, stores: profileStores, notifications: notificationBridge)
         }
         panelController?.update(settings: settings, controllers: slotControllers)
     }
