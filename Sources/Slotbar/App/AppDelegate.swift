@@ -8,6 +8,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panelController: PanelController?
     private var settingsStore: SettingsStore?
     private var hotkey: Hotkey?
+    private let profileStores = ProfileStores()
+    /// One per Slot, in list order.
+    private var slotControllers: [SlotController] = []
+    private var settingsWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let supportDirectory = URL.applicationSupportDirectory.appendingPathComponent("Slotbar")
@@ -17,6 +21,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let panel = PanelController(settingsStore: store)
         panelController = panel
         hotkey = Hotkey { panel.toggle() }
+        apply(store.settings)
+        store.observe { [weak self] settings in self?.apply(settings) }
+        let launchIds = slotsLoadedAtLaunch(store.settings.slots)
+        for controller in slotControllers where launchIds.contains(controller.slot.id) {
+            controller.load()
+        }
 
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
@@ -32,6 +42,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         statusItem = item
         log.info("Launched")
+    }
+
+    /// Keeps one SlotController per Slot (reused by id) and hands them to the Panel.
+    private func apply(_ settings: Settings) {
+        slotControllers = settings.slots.map { slot in
+            if let existing = slotControllers.first(where: { $0.slot.id == slot.id }) {
+                existing.slot = slot
+                return existing
+            }
+            return SlotController(slot: slot, stores: profileStores)
+        }
+        panelController?.update(settings: settings, controllers: slotControllers)
     }
 
     @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
@@ -55,7 +77,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
     }
 
+    /// Placeholder window until the Settings tickets land.
     @objc func showSettings(_ sender: Any?) {
-        log.info("Settings requested; the Settings window is not built yet")
+        let window = settingsWindow ?? {
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 200),
+                                  styleMask: [.titled, .closable], backing: .buffered, defer: true)
+            window.title = "Slotbar Settings"
+            window.isReleasedWhenClosed = false
+            let label = NSTextField(labelWithString: "Settings are not available yet.")
+            label.frame = NSRect(x: 20, y: 90, width: 440, height: 20)
+            label.alignment = .center
+            window.contentView?.addSubview(label)
+            window.center()
+            settingsWindow = window
+            return window
+        }()
+        NSApp.activate()
+        window.makeKeyAndOrderFront(nil)
     }
 }

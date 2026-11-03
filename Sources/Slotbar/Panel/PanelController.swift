@@ -2,12 +2,20 @@ import AppKit
 
 private let log = Log.logger("Panel")
 
-/// Shows, hides, slides and resizes the Panel on the configured edge of the screen under the pointer (SPEC 4.2, 4.3, 4.5).
+/// Shows, hides, slides and resizes the Panel on the configured edge of the screen under the pointer
+/// (SPEC 4.2, 4.3, 4.5); hosts the Rail and the active Slot.
 @MainActor
 final class PanelController: NSObject {
     private let window = PanelWindow()
     private let settingsStore: SettingsStore
     private let resizeHandle = PanelResizeHandle()
+    private let rail = RailView()
+    private let slotArea = NSView()
+    private let emptyState = PanelController.makeEmptyState()
+    private var settings: Settings?
+    private var controllers: [SlotController] = []
+    /// Last active Slot, in memory only (SPEC 4.5).
+    private var activeSlot: UUID?
     private var policy = PanelToggle()
     /// Screen and edge fixed at show time; the Panel stays there until hidden.
     private var screen: NSScreen?
@@ -23,8 +31,12 @@ final class PanelController: NSObject {
         let content = NSView()
         content.wantsLayer = true
         content.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        content.autoresizesSubviews = true
+        content.addSubview(slotArea)
+        content.addSubview(rail)
         content.addSubview(resizeHandle)
         window.contentView = content
+        rail.onSelect = { [weak self] id in self?.activate(id) }
         resizeHandle.onDrag = { [weak self] pointer, ended in self?.resizeDragged(to: pointer, ended: ended) }
 
         NotificationCenter.default.addObserver(
@@ -32,6 +44,17 @@ final class PanelController: NSObject {
         NotificationCenter.default.addObserver(
             self, selector: #selector(screensDidChange(_:)),
             name: NSApplication.didChangeScreenParametersNotification, object: nil)
+    }
+
+    /// Replaces the Slot list shown in the Rail; keeps the active Slot when it still exists.
+    func update(settings: Settings, controllers: [SlotController]) {
+        self.settings = settings
+        self.controllers = controllers
+        if isShowing {
+            activate(slotToShow(slots: settings.slots, lastActive: activeSlot))
+        } else {
+            refreshRail()
+        }
     }
 
     /// True when the Panel (or, once they exist, one of its Child windows) is key.
@@ -74,11 +97,14 @@ final class PanelController: NSObject {
         guard let screen else { return }
         let visible = screen.visibleFrame
         let shown = panelFrame(visibleFrame: visible, edge: edge, depthFraction: storedFraction)
+        let wasShowing = window.isVisible
         resizeHandle.place(on: edge, in: shown.size)
+        layoutContent(size: shown.size)
+        if !wasShowing { activate(slotToShow(slots: settings?.slots ?? [], lastActive: activeSlot)) }
 
         animationID += 1
         let id = animationID
-        if !window.isVisible {
+        if !wasShowing {
             if reduceMotion {
                 window.alphaValue = 0
                 window.setFrame(shown, display: false)
@@ -156,12 +182,77 @@ final class PanelController: NSObject {
         let fraction = depthFraction(innerBorderAt: pointer, visibleFrame: visible, edge: edge)
         let frame = panelFrame(visibleFrame: visible, edge: edge, depthFraction: fraction)
         window.setFrame(frame, display: true)
-        resizeHandle.place(on: edge, in: frame.size)
         guard ended else { return }
         let vertical = edge.isVertical
         settingsStore.update { settings in
             if vertical { settings.general.panelDepth.vertical = fraction } else { settings.general.panelDepth.horizontal = fraction }
         }
+    }
+
+    /// Makes a Slot active, loading it if needed; `nil` shows the empty state.
+    private func activate(_ id: UUID?) {
+        activeSlot = id
+        slotArea.subviews.forEach { $0.removeFromSuperview() }
+        let view: NSView
+        if let id, let controller = controllers.first(where: { $0.slot.id == id }) {
+            view = controller.load()
+        } else {
+            view = emptyState
+        }
+        view.frame = slotArea.bounds
+        view.autoresizingMask = [.width, .height]
+        slotArea.addSubview(view)
+        if view !== emptyState { window.makeFirstResponder(view) }
+        refreshRail()
+    }
+
+    private func refreshRail() {
+        guard let settings else { return }
+        rail.update(items: railItems(settings: settings, activeSlot: activeSlot))
+    }
+
+    /// Rail on the outer side (next to the screen edge), Slot area filling the rest; both follow live resizes.
+    private func layoutContent(size: NSSize) {
+        let t = RailView.thickness
+        rail.isHorizontal = edge.isVertical
+        switch edge {
+        case .right:
+            rail.frame = NSRect(x: size.width - t, y: 0, width: t, height: size.height)
+            rail.autoresizingMask = [.minXMargin, .height]
+            slotArea.frame = NSRect(x: 0, y: 0, width: size.width - t, height: size.height)
+        case .left:
+            rail.frame = NSRect(x: 0, y: 0, width: t, height: size.height)
+            rail.autoresizingMask = [.maxXMargin, .height]
+            slotArea.frame = NSRect(x: t, y: 0, width: size.width - t, height: size.height)
+        case .top:
+            rail.frame = NSRect(x: 0, y: size.height - t, width: size.width, height: t)
+            rail.autoresizingMask = [.minYMargin, .width]
+            slotArea.frame = NSRect(x: 0, y: 0, width: size.width, height: size.height - t)
+        case .bottom:
+            rail.frame = NSRect(x: 0, y: 0, width: size.width, height: t)
+            rail.autoresizingMask = [.maxYMargin, .width]
+            slotArea.frame = NSRect(x: 0, y: t, width: size.width, height: size.height - t)
+        }
+        slotArea.autoresizingMask = [.width, .height]
+    }
+
+    /// "No Slots" with an "Open Settings" button (SPEC 4.4).
+    private static func makeEmptyState() -> NSView {
+        let label = NSTextField(labelWithString: "No Slots")
+        label.font = .systemFont(ofSize: NSFont.systemFontSize + 4, weight: .semibold)
+        label.textColor = .secondaryLabelColor
+        let button = NSButton(title: "Open Settings", target: nil, action: #selector(AppDelegate.showSettings(_:)))
+        let stack = NSStackView(views: [label, button])
+        stack.orientation = .vertical
+        stack.spacing = 12
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        let view = NSView()
+        view.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+        ])
+        return view
     }
 
     /// Auto-hide (SPEC 4.5): any key window in this app (Settings, sheets, open/save panels, JS dialogs,
