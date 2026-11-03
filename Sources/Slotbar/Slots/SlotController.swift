@@ -9,6 +9,7 @@ private let log = Log.logger("Slots")
 final class SlotController: NSObject, WKNavigationDelegate {
     var slot: Slot {
         didSet {
+            favicon.slot = slot
             if !slot.hasSameStart(as: oldValue) { startChanged() }
             guard slot.keepAlive != oldValue.keepAlive else { return }
             if lifecycle.setKeepAlive(slot.keepAlive, at: Date()) { load() }
@@ -20,10 +21,8 @@ final class SlotController: NSObject, WKNavigationDelegate {
     var onRoute: ((UUID, URL) -> Void)?
     private let stores: ProfileStores
     private let notifications: NotificationBridge
-    private let favicons: FaviconCache
+    private let favicon: FaviconFetcher
     private(set) var webView: WKWebView?
-    /// Icon link last fetched in this session.
-    private var lastIconURL: URL?
     /// Called when the loaded Slot's Unread state changes.
     var onUnreadChange: (() -> Void)?
     private var unreadMonitor: UnreadMonitor?
@@ -60,13 +59,16 @@ final class SlotController: NSObject, WKNavigationDelegate {
     /// Page title of a completed main-frame load while the Slot's label is null.
     var onUnlabeledLoad: ((_ slotId: UUID, _ pageTitle: String) -> Void)?
     /// A new favicon was cached.
-    var onFaviconChange: ((_ slotId: UUID) -> Void)?
+    var onFaviconChange: ((_ slotId: UUID) -> Void)? {
+        get { favicon.onChange }
+        set { favicon.onChange = newValue }
+    }
 
     init(slot: Slot, stores: ProfileStores, notifications: NotificationBridge, favicons: FaviconCache) {
         self.slot = slot
         self.stores = stores
         self.notifications = notifications
-        self.favicons = favicons
+        favicon = FaviconFetcher(slot: slot, stores: stores, favicons: favicons)
         lifecycle = SlotLifecycle(keepAlive: slot.keepAlive)
     }
 
@@ -127,7 +129,6 @@ final class SlotController: NSObject, WKNavigationDelegate {
         let wasLoaded = webView != nil
         releaseWebView()
         lastURL = nil
-        lastIconURL = nil
         signInMode = SignInMode()
         guard wasLoaded else { return }
         load(at: slot.url)
@@ -277,39 +278,8 @@ final class SlotController: NSObject, WKNavigationDelegate {
         load(at: reopenURL)
     }
 
-    fileprivate func iconLinkReported(_ body: Any) {
-        let reported = (body as? String).flatMap(URL.init(string:))
-        guard let iconURL = faviconURL(reported: reported, slotURL: slot.url),
-              shouldFetchFavicon(slotURL: slot.url, lastIconURL: lastIconURL, iconURL: iconURL,
-                                 hasCachedIcon: favicons.hasIcon(for: slot.id)) else { return }
-        lastIconURL = iconURL
-        let slot = slot
-        let store = stores.store(for: slot.profileId)
-        Task { [weak self] in
-            guard let data = await Self.fetch(iconURL, store: store) else { return }
-            // Dropped if the Slot was deleted or moved to another URL or Profile meanwhile.
-            guard let self, self.slot.hasSameStart(as: slot) else { return }
-            self.favicons.store(imageData: data, for: slot.id)
-            if self.favicons.hasIcon(for: slot.id) { self.onFaviconChange?(slot.id) }
-        }
-    }
-
-    /// Fetches with the Profile's cookies and the Slotbar user agent, so the icon comes "through the Slot's data store".
-    private static func fetch(_ url: URL, store: WKWebsiteDataStore) async -> Data? {
-        let cookies = await store.httpCookieStore.allCookies()
-        let configuration = URLSessionConfiguration.ephemeral
-        cookies.forEach { configuration.httpCookieStorage?.setCookie($0) }
-        configuration.httpAdditionalHeaders = ["User-Agent": WebViewFactory.userAgent]
-        let session = URLSession(configuration: configuration)
-        defer { session.finishTasksAndInvalidate() }
-        do {
-            let (data, response) = try await session.data(from: url)
-            guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
-            return data
-        } catch {
-            log.debug("Favicon fetch failed: \(error.localizedDescription, privacy: .public)")
-            return nil
-        }
+    fileprivate func faviconLinkReported(_ body: Any) {
+        favicon.iconLinkReported(body)
     }
 
     // MARK: WKNavigationDelegate - routing, downloads via DownloadManager (SPEC 7.4), auto-label
@@ -416,7 +386,7 @@ private final class WeakScriptHandler: NSObject, WKScriptMessageHandler {
         MainActor.assumeIsolated {
             // Child windows share this user content controller; only the Slot's own page counts.
             guard message.frameInfo.isMainFrame, let controller, message.webView === controller.webView else { return }
-            controller.iconLinkReported(message.body)
+            controller.faviconLinkReported(message.body)
         }
     }
 }
