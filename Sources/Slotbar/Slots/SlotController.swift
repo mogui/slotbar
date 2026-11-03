@@ -1,3 +1,4 @@
+import AppKit
 import WebKit
 
 private let log = Log.logger("Slots")
@@ -30,6 +31,20 @@ final class SlotController {
         self.webView = webView
         log.debug("Loading Slot \(self.slot.id, privacy: .public)")
         return webView
+    }
+
+    /// Go home, open current page in browser, reload (SPEC 7.5). Loads the Slot first if needed.
+    func perform(_ action: SlotAction) {
+        switch action {
+        case .goHome:
+            load().load(URLRequest(url: slot.url))
+        case .openInBrowser:
+            NSWorkspace.shared.open(webView?.url ?? slot.url)
+        case .reload:
+            if let webView { webView.reload() } else { load() }
+        case .toggleNotifications:
+            break
+        }
     }
 
     /// The Slot's Unread state while loaded; nil when Unloaded (contributes nothing).

@@ -6,6 +6,7 @@ struct RailItem: Equatable {
     var tooltip: String
     var color: ProfileColor
     var isActive: Bool
+    var notifications: Bool
     /// The Slot's own badge text (SPEC 8.4); nil when nothing is unread or the Slot is Unloaded.
     var badge: String? = nil
 }
@@ -20,6 +21,7 @@ func railItems(settings: Settings, activeSlot: UUID?, unread: [UUID: UnreadState
                         tooltip: index < 9 ? "\(name)  ⌘\(index + 1)" : name,
                         color: ProfileColor(hex: color),
                         isActive: slot.id == activeSlot,
+                        notifications: slot.notifications,
                         badge: unread[slot.id].flatMap { badgeText(Badge($0)) })
     }
 }

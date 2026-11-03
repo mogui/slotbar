@@ -6,8 +6,33 @@ final class RailView: NSView {
     static let thickness: CGFloat = 44
 
     var onSelect: ((UUID) -> Void)?
+    var onAction: ((UUID, SlotAction) -> Void)?
     private let stack = NSStackView()
     private var items: [RailItem] = []
+    private lazy var verticalConstraints = [
+        stack.topAnchor.constraint(equalTo: topAnchor),
+        stack.leadingAnchor.constraint(equalTo: leadingAnchor),
+        stack.trailingAnchor.constraint(equalTo: trailingAnchor),
+    ]
+    private lazy var horizontalConstraints = [
+        stack.leadingAnchor.constraint(equalTo: leadingAnchor),
+        stack.topAnchor.constraint(equalTo: topAnchor),
+        stack.bottomAnchor.constraint(equalTo: bottomAnchor),
+    ]
+
+    /// Vertical strip for left/right Panels, horizontal for top/bottom (SPEC 4.4).
+    var isHorizontal = false {
+        didSet {
+            guard isHorizontal != oldValue else { return }
+            NSLayoutConstraint.deactivate(isHorizontal ? verticalConstraints : horizontalConstraints)
+            NSLayoutConstraint.activate(isHorizontal ? horizontalConstraints : verticalConstraints)
+            stack.orientation = isHorizontal ? .horizontal : .vertical
+            stack.alignment = isHorizontal ? .centerY : .centerX
+            stack.edgeInsets = isHorizontal
+                ? NSEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
+                : NSEdgeInsets(top: 10, left: 0, bottom: 10, right: 0)
+        }
+    }
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -17,11 +42,7 @@ final class RailView: NSView {
         stack.edgeInsets = NSEdgeInsets(top: 10, left: 0, bottom: 10, right: 0)
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: topAnchor),
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor),
-        ])
+        NSLayoutConstraint.activate(verticalConstraints)
     }
 
     @available(*, unavailable)
@@ -38,6 +59,12 @@ final class RailView: NSView {
             button.toolTip = item.tooltip
             button.wantsLayer = true
             button.layer?.cornerRadius = 7
+            let menu = Menus.slotMenu(notifications: item.notifications)
+            for menuItem in menu.items {
+                menuItem.target = self
+                menuItem.tag = index
+            }
+            button.menu = menu
             button.layer?.backgroundColor = item.isActive
                 ? NSColor.controlAccentColor.withAlphaComponent(0.25).cgColor : nil
             if let badge = item.badge { addCapsule(badge, to: button) }
@@ -84,5 +111,15 @@ final class RailView: NSView {
 
     @objc private func iconClicked(_ sender: NSButton) {
         onSelect?(items[sender.tag].slotId)
+    }
+
+    @objc func goHome(_ sender: NSMenuItem) { send(.goHome, sender) }
+    @objc func openInBrowser(_ sender: NSMenuItem) { send(.openInBrowser, sender) }
+    @objc func reload(_ sender: NSMenuItem) { send(.reload, sender) }
+    @objc func toggleNotifications(_ sender: NSMenuItem) { send(.toggleNotifications, sender) }
+
+    private func send(_ action: SlotAction, _ sender: NSMenuItem) {
+        guard items.indices.contains(sender.tag) else { return }
+        onAction?(items[sender.tag].slotId, action)
     }
 }
