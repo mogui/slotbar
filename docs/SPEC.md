@@ -488,7 +488,7 @@ Sources: [Build and release pipeline](https://github.com/mogui/slotbar/issues/16
 ### 12.1 Package and toolchain
 
 - `Package.swift`: `swift-tools-version: 6.0`, Swift 6 language mode, `platforms: [.macOS(.v14)]`, one executable target `Slotbar`, the test target `SlotbarTests` (section 2), KeyboardShortcuts as the only dependency. CI runs no tests.
-- Toolchain: the current stable Xcode on the CI runner, no pin.
+- Toolchain: CI pins Xcode 26.3 via `DEVELOPER_DIR` (the newest on the `macos-15-intel` image; its default Xcode 16.4 fails on the Swift 6 concurrency checks).
 - Architectures: universal arm64 + x86_64: one `swift build -c release --arch <arch>` per arch, joined with `lipo -create` (a multi-arch `swift build` switches to the Xcode build system, which fails with Swift 6 on the CI runner image). x86_64 is dropped the first time the runner's Xcode refuses it. Intel is best effort.
 
 ### 12.2 `scripts/build-app.sh [debug|release]`
