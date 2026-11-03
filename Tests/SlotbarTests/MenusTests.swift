@@ -44,10 +44,21 @@ import AppKit
     }
 
     @Test func statusMenuOffersSettingsAboutAndQuit() {
-        #expect(entries(Menus.statusMenu()) == [
+        #expect(entries(Menus.statusMenu(hotkeyUnavailable: false)) == [
             Entry(title: "Settings...", key: ",", modifiers: .command, action: #selector(AppDelegate.showSettings(_:))),
             Entry(title: "About Slotbar", key: "", modifiers: [], action: #selector(AppDelegate.showAbout(_:))),
             Entry(title: "Quit Slotbar", key: "q", modifiers: .command, action: #selector(NSApplication.terminate(_:))),
         ])
+    }
+
+    @Test func statusMenuWarnsFirstWhenTheHotkeyIsUnavailable() throws {
+        let menu = Menus.statusMenu(hotkeyUnavailable: true)
+        #expect(entries(menu) == [
+            Entry(title: "Hotkey unavailable", key: "", modifiers: [], action: nil),
+            Entry(title: "Settings...", key: ",", modifiers: .command, action: #selector(AppDelegate.showSettings(_:))),
+            Entry(title: "About Slotbar", key: "", modifiers: [], action: #selector(AppDelegate.showAbout(_:))),
+            Entry(title: "Quit Slotbar", key: "q", modifiers: .command, action: #selector(NSApplication.terminate(_:))),
+        ])
+        #expect(!menu.items[0].isEnabled)
     }
 }
