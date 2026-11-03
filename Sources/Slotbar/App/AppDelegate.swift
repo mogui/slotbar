@@ -13,7 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var favicons: FaviconCache?
     /// One per Slot, in list order.
     private var slotControllers: [SlotController] = []
-    private var settingsWindow: NSWindow?
+    private var settingsWindow: SettingsWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let supportDirectory = URL.applicationSupportDirectory.appendingPathComponent("Slotbar")
@@ -26,6 +26,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.onSlotAction = { [weak self] id, action in self?.perform(action, on: id) }
         panelController = panel
         hotkey = Hotkey { panel.toggle() }
+        let openAtLogin = OpenAtLogin(service: MainAppLoginItem(), store: store)
+        openAtLogin.healAtLaunch()
+        settingsWindow = SettingsWindowController(store: store, hotkey: hotkey, openAtLogin: openAtLogin)
         notificationBridge.slotForWebView = { [weak self] webView in
             self?.slotControllers.first { $0.owns(webView) }?.slot
         }
@@ -63,6 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = item
         refreshBadges()
         log.info("Launched")
+        warnIfOutsideApplications()
     }
 
     /// Keeps one SlotController per Slot (reused by id), drops stale favicons and hands the controllers to the Panel.
@@ -158,22 +162,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
     }
 
-    /// Placeholder window until the Settings tickets land.
     @objc func showSettings(_ sender: Any?) {
-        let window = settingsWindow ?? {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 200),
-                                  styleMask: [.titled, .closable], backing: .buffered, defer: true)
-            window.title = "Slotbar Settings"
-            window.isReleasedWhenClosed = false
-            let label = NSTextField(labelWithString: "Settings are not available yet.")
-            label.frame = NSRect(x: 20, y: 90, width: 440, height: 20)
-            label.alignment = .center
-            window.contentView?.addSubview(label)
-            window.center()
-            settingsWindow = window
-            return window
-        }()
+        settingsWindow?.show()
+    }
+
+    /// Shown at every launch while the app runs translocated or outside Applications (SPEC 12.5).
+    private func warnIfOutsideApplications() {
+        guard LocationGuard.needsMove(bundlePath: Bundle.main.bundlePath,
+                                      homeDirectory: FileManager.default.homeDirectoryForCurrentUser.path) else { return }
+        log.info("Running outside Applications: \(Bundle.main.bundlePath, privacy: .public)")
+        let alert = NSAlert()
+        alert.messageText = "Move Slotbar to Applications"
+        alert.informativeText = "Notifications need Slotbar to run from the Applications folder. Quit Slotbar, move it to Applications and open it again."
+        alert.addButton(withTitle: "OK")
         NSApp.activate()
-        window.makeKeyAndOrderFront(nil)
+        alert.runModal()
     }
 }
