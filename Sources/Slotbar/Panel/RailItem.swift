@@ -6,6 +6,7 @@ struct RailItem: Equatable {
     var tooltip: String
     var color: ProfileColor
     var isActive: Bool
+    var notifications: Bool
 }
 
 /// One item per Slot in list order. Tooltip: label (Home host while null), plus `⌘N` for the first nine.
@@ -16,6 +17,7 @@ func railItems(settings: Settings, activeSlot: UUID?) -> [RailItem] {
         return RailItem(slotId: slot.id,
                         tooltip: index < 9 ? "\(name)  ⌘\(index + 1)" : name,
                         color: ProfileColor(hex: color),
-                        isActive: slot.id == activeSlot)
+                        isActive: slot.id == activeSlot,
+                        notifications: slot.notifications)
     }
 }

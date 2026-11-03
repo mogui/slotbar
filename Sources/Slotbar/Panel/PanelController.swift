@@ -13,6 +13,8 @@ final class PanelController {
     private var controllers: [SlotController] = []
     /// Last active Slot, in memory only (SPEC 4.5).
     private var activeSlot: UUID?
+    /// Per-Slot actions from the Rail menu and the Panel shortcuts.
+    var onSlotAction: ((UUID, SlotAction) -> Void)?
 
     init() {
         let content = NSView()
@@ -26,6 +28,8 @@ final class PanelController {
         content.addSubview(slotArea)
         content.addSubview(rail)
         rail.onSelect = { [weak self] id in self?.activate(id) }
+        rail.onAction = { [weak self] id, action in self?.onSlotAction?(id, action) }
+        window.onShortcut = { [weak self] shortcut in self?.handle(shortcut) }
     }
 
     /// Replaces the Slot list shown in the Rail; keeps the active Slot when it still exists.
@@ -66,6 +70,23 @@ final class PanelController {
     func hide() {
         window.orderOut(nil)
         log.debug("Panel hidden")
+    }
+
+    private func handle(_ shortcut: PanelShortcut) {
+        switch shortcut {
+        case .activateSlot(let number):
+            if let id = slotId(number: number, in: settings?.slots ?? []) { activate(id) }
+        case .hidePanel:
+            hide()
+        case .goHome: performOnActive(.goHome)
+        case .openInBrowser: performOnActive(.openInBrowser)
+        case .reload: performOnActive(.reload)
+        }
+    }
+
+    private func performOnActive(_ action: SlotAction) {
+        guard let activeSlot else { return }
+        onSlotAction?(activeSlot, action)
     }
 
     /// Makes a Slot active, loading it if needed; `nil` shows the empty state.

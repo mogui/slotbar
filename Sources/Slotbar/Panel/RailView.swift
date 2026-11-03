@@ -6,6 +6,7 @@ final class RailView: NSView {
     static let thickness: CGFloat = 44
 
     var onSelect: ((UUID) -> Void)?
+    var onAction: ((UUID, SlotAction) -> Void)?
     private let stack = NSStackView()
     private var items: [RailItem] = []
 
@@ -38,6 +39,12 @@ final class RailView: NSView {
             button.toolTip = item.tooltip
             button.wantsLayer = true
             button.layer?.cornerRadius = 7
+            let menu = Menus.slotMenu(notifications: item.notifications)
+            for menuItem in menu.items {
+                menuItem.target = self
+                menuItem.tag = index
+            }
+            button.menu = menu
             button.layer?.backgroundColor = item.isActive
                 ? NSColor.controlAccentColor.withAlphaComponent(0.25).cgColor : nil
             stack.addArrangedSubview(button)
@@ -64,5 +71,15 @@ final class RailView: NSView {
 
     @objc private func iconClicked(_ sender: NSButton) {
         onSelect?(items[sender.tag].slotId)
+    }
+
+    @objc func goHome(_ sender: NSMenuItem) { send(.goHome, sender) }
+    @objc func openInBrowser(_ sender: NSMenuItem) { send(.openInBrowser, sender) }
+    @objc func reload(_ sender: NSMenuItem) { send(.reload, sender) }
+    @objc func toggleNotifications(_ sender: NSMenuItem) { send(.toggleNotifications, sender) }
+
+    private func send(_ action: SlotAction, _ sender: NSMenuItem) {
+        guard items.indices.contains(sender.tag) else { return }
+        onAction?(items[sender.tag].slotId, action)
     }
 }

@@ -50,4 +50,17 @@ import AppKit
             Entry(title: "Quit Slotbar", key: "q", modifiers: .command, action: #selector(NSApplication.terminate(_:))),
         ])
     }
+
+    @Test(arguments: [true, false])
+    func slotMenuOffersActionsThenNotificationsCheckItem(notifications: Bool) {
+        let menu = Menus.slotMenu(notifications: notifications)
+        #expect(menu.items.map(\.isSeparatorItem) == [false, false, false, true, false])
+        #expect(entries(menu) == [
+            Entry(title: "Go home", key: "", modifiers: [], action: #selector(RailView.goHome(_:))),
+            Entry(title: "Open current page in browser", key: "", modifiers: [], action: #selector(RailView.openInBrowser(_:))),
+            Entry(title: "Reload", key: "", modifiers: [], action: #selector(RailView.reload(_:))),
+            Entry(title: "Notifications", key: "", modifiers: [], action: #selector(RailView.toggleNotifications(_:))),
+        ])
+        #expect(menu.items.last?.state == (notifications ? .on : .off))
+    }
 }

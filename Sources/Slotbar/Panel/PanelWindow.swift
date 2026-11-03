@@ -10,6 +10,18 @@ final class PanelWindow: NSPanel {
         isReleasedWhenClosed = false
     }
 
+    /// Handles Panel shortcuts before the webview sees them (SPEC 9).
+    var onShortcut: ((PanelShortcut) -> Void)?
+
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if let characters = event.charactersIgnoringModifiers, let onShortcut,
+           let shortcut = PanelShortcut.match(charactersIgnoringModifiers: characters, modifierFlags: event.modifierFlags) {
+            onShortcut(shortcut)
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
+    }
 }

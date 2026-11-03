@@ -25,6 +25,18 @@ enum Menus {
         return menu
     }
 
+    /// Rail icon right-click menu (SPEC 4.4). `RailView` sets the target and the Slot index as tag.
+    static func slotMenu(notifications: Bool) -> NSMenu {
+        let menu = NSMenu()
+        menu.addItem(withTitle: "Go home", action: #selector(RailView.goHome(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: "Open current page in browser", action: #selector(RailView.openInBrowser(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: "Reload", action: #selector(RailView.reload(_:)), keyEquivalent: "")
+        menu.addItem(.separator())
+        let toggle = menu.addItem(withTitle: "Notifications", action: #selector(RailView.toggleNotifications(_:)), keyEquivalent: "")
+        toggle.state = notifications ? .on : .off
+        return menu
+    }
+
     private static func appMenu() -> NSMenu {
         let menu = NSMenu(title: "Slotbar")
         menu.addItem(withTitle: "About Slotbar", action: #selector(AppDelegate.showAbout(_:)), keyEquivalent: "")

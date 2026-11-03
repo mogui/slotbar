@@ -31,4 +31,13 @@ import Testing
     @Test func launchLoadsKeptAliveSlotsInListOrder() {
         #expect(slotsLoadedAtLaunch([mail, calendar, chat]) == [mail.id, chat.id])
     }
+
+    @Test func slotNumberPicksSlotInListOrder() {
+        #expect(slotId(number: 2, in: [mail, calendar, chat]) == calendar.id)
+    }
+
+    @Test func missingSlotNumberIsNoOp() {
+        #expect(slotId(number: 4, in: [mail, calendar, chat]) == nil)
+        #expect(slotId(number: 1, in: []) == nil)
+    }
 }

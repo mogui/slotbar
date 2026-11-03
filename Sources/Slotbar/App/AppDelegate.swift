@@ -17,7 +17,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let store = SettingsStore(directory: supportDirectory)
         settingsStore = store
         NSApp.mainMenu = Menus.mainMenu()
-        panelController = PanelController()
+        let panel = PanelController()
+        panel.onSlotAction = { [weak self] id, action in self?.perform(action, on: id) }
+        panelController = panel
         apply(store.settings)
         store.observe { [weak self] settings in self?.apply(settings) }
         let launchIds = slotsLoadedAtLaunch(store.settings.slots)
@@ -51,6 +53,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return SlotController(slot: slot, stores: profileStores)
         }
         panelController?.update(settings: settings, controllers: slotControllers)
+    }
+
+    private func perform(_ action: SlotAction, on id: UUID) {
+        if action == .toggleNotifications {
+            settingsStore?.update { $0.toggleNotifications(slot: id) }
+        } else {
+            slotControllers.first { $0.slot.id == id }?.perform(action)
+        }
     }
 
     @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
