@@ -517,7 +517,7 @@ Signing is ad-hoc only: a sealed bundle signature is required to post notificati
 
 ### 12.4 Release workflow
 
-- `.github/workflows/release.yml`, triggered only on `v*` tag pushes, on a macOS runner. The YAML only calls scripts.
+- `.github/workflows/release.yml`, triggered only on `v*` tag pushes, on the `macos-15-intel` runner (the arm64 queue is often out of capacity); it builds the universal app all the same. The YAML only calls scripts.
 - Steps (`scripts/release.sh vX.Y.Z`): `VERSION=${tag#v} BUILD_NUMBER=$GITHUB_RUN_NUMBER scripts/build-app.sh release`; a DMG `build/Slotbar-X.Y.Z.dmg` (`hdiutil create -format UDZO`, volume "Slotbar X.Y.Z") holding `Slotbar.app` and an `Applications` symlink; `shasum -a 256`; then `gh release create vX.Y.Z Slotbar-X.Y.Z.dmg --title "Slotbar X.Y.Z" --generate-notes` with notes giving the install steps (drag to Applications, `xattr -dr com.apple.quarantine`) and the SHA-256. `PUBLISH=0` stops after the DMG.
 - Versioning: SemVer tags from `v0.1.0`. Pre-1.0: minor = features, patch = fixes. Local builds are never uploaded.
 - No update checks. Upgrades are manual downloads from GitHub Releases.
