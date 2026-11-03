@@ -80,8 +80,9 @@ final class SlotController: NSObject, WKNavigationDelegate {
         return webView
     }
 
-    /// Destroys the webview of a deleted Slot so its Profile's data store is no longer attached (SPEC 3.4, 5).
+    /// Destroys the webview and Child windows of a deleted Slot so its Profile's data store is no longer attached (SPEC 3.4, 5).
     func close() {
+        closeChildWindows()
         guard let webView else { return }
         webView.stopLoading()
         webView.removeFromSuperview()

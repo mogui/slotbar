@@ -85,9 +85,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             controller.close()
         }
         notificationBridge.removeDelivered(slotIds: Set(slotControllers.map(\.slot.id)).subtracting(remaining))
-        for controller in slotControllers where !remaining.contains(controller.slot.id) {
-            controller.closeChildWindows()
-        }
         guard let favicons else { return }
         for id in faviconCachesToDelete(old: slotControllers.map(\.slot), new: settings.slots) {
             favicons.remove(id)
