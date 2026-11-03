@@ -15,6 +15,10 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"></a>
 </p>
 
+<p align="center">
+  <img src="docs/demo.gif" width="800" alt="The Slotbar Panel slides in from the left edge and switches between Slots">
+</p>
+
 ---
 
 ## Features
@@ -25,7 +29,7 @@
 - **Native notifications**: web notifications become macOS notifications. Clicking a Google Chat notification opens that conversation.
 - **Unread badges**: Gmail's Inbox count, Chat's unread dot and any `(N)` page title show on the Slot icon and in the menu bar.
 - **Light on memory**: Slots without Keep-alive unload 5 minutes after you last looked at them.
-- **Links where they belong**: links to another Slot of the same Profile open there; everything else opens in your default browser.
+- **Links where they belong**: same-domain links stay in Slotbar, links to another Slot of the same Profile open there, other domains open in your default browser. `Cmd`-click does the opposite; right-click a link to choose.
 - **Optional Dock icon**: turn on Show in Dock to reach Slotbar with `Cmd+Tab`.
 
 ## Install
@@ -113,6 +117,10 @@ Esc is left to the page. If the global hotkey cannot be registered (for example 
 
 Settings opens inside the Panel (gear, `Cmd+,` or the menu bar icon's right-click menu). Click a Slot icon to go back.
 
+<p align="center">
+  <img src="docs/screenshot.png" width="700" alt="Settings inside the Panel: General, Profiles and Slots">
+</p>
+
 - **General**: global hotkey, Panel edge, Hide when Slotbar loses focus, Show in Dock, Open at login.
 - **Profiles**: add, rename, recolor or delete Profiles. Deleting a Profile deletes its Slots and its session.
 - **Slots**: add Slots with "+"; edit label, URL and Profile inline; use the "..." menu to move or delete a Slot. Per Slot:
@@ -133,10 +141,10 @@ Settings and sessions are kept. With Open at login on, macOS may show a "Login i
 
 ## Build from source
 
-Requires Xcode with Swift 6.
+Requires Xcode 26 or later (Swift 6). Xcode 16 fails the Swift 6 concurrency checks.
 
 ```sh
-scripts/build-app.sh release   # universal arm64 + x86_64, ad-hoc signed
+scripts/build-app.sh release   # arm64 + x86_64 built separately, joined with lipo, ad-hoc signed
 swift test                     # unit tests
 ```
 
@@ -144,7 +152,7 @@ The app is written to `build/Slotbar.app`. `scripts/build-app.sh debug` builds a
 
 ### Releasing
 
-Push a `vX.Y.Z` tag. The [Release workflow](.github/workflows/release.yml) runs `scripts/release.sh`, which builds the universal app, packages `Slotbar-X.Y.Z.dmg` and publishes it as a GitHub Release with its SHA-256.
+Push a `vX.Y.Z` tag. The [Release workflow](.github/workflows/release.yml) runs `scripts/release.sh` on the `macos-15-intel` runner with Xcode 26.3, which builds the universal app, packages `Slotbar-X.Y.Z.dmg` and publishes it as a GitHub Release with its SHA-256.
 
 ```sh
 git tag v0.2.0 && git push origin v0.2.0

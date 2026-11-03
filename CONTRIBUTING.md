@@ -20,7 +20,7 @@ Open an issue before writing code for anything beyond a small fix, so scope and 
 
 ## Development setup
 
-Requirements: macOS 14 or later, Xcode with Swift 6.
+Requirements: macOS 14 or later, Xcode 26 or later (Swift 6).
 
 ```sh
 git clone https://github.com/mogui/slotbar.git
