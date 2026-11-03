@@ -155,10 +155,10 @@ The app is written to `build/Slotbar.app`. `scripts/build-app.sh debug` builds a
 Push a `vX.Y.Z` tag. The [Release workflow](.github/workflows/release.yml) runs `scripts/release.sh` on the `macos-15-intel` runner with Xcode 26.3, which builds the universal app, packages `Slotbar-X.Y.Z.dmg` and publishes it as a GitHub Release with its SHA-256.
 
 ```sh
-git tag v0.2.0 && git push origin v0.2.0
+git tag v0.3.0 && git push origin v0.3.0
 ```
 
-`PUBLISH=0 scripts/release.sh v0.2.0` builds the DMG locally without publishing.
+`PUBLISH=0 scripts/release.sh v0.3.0` builds the DMG locally without publishing.
 
 ## Limitations
 
