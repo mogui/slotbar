@@ -16,8 +16,12 @@ enum Menus {
     }
 
     /// Status item right-click / Ctrl-click menu (SPEC 4.6).
-    static func statusMenu() -> NSMenu {
+    static func statusMenu(hotkeyUnavailable: Bool) -> NSMenu {
         let menu = NSMenu()
+        if hotkeyUnavailable {
+            menu.addItem(withTitle: "Hotkey unavailable", action: nil, keyEquivalent: "").isEnabled = false
+            menu.addItem(.separator())
+        }
         menu.addItem(withTitle: "Settings...", action: #selector(AppDelegate.showSettings(_:)), keyEquivalent: ",")
         menu.addItem(withTitle: "About Slotbar", action: #selector(AppDelegate.showAbout(_:)), keyEquivalent: "")
         menu.addItem(.separator())
