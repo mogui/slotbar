@@ -52,6 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         notificationBridge.panelShowingSlot = { panel.visibleSlot }
         notificationBridge.showSlot = { panel.show(slot: $0) }
+        notificationBridge.openURL = { [weak self] id, url in self?.openRouted(id, url) }
         notificationBridge.requestAuthorizationIfNeeded()
         apply(store.settings)
         store.observe { [weak self] settings in self?.apply(settings) }

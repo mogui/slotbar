@@ -80,3 +80,34 @@ import Testing
         #expect(foregroundPresentation(originSlot: chat, panelShowing: mail, silent: true) == [.banner, .list])
     }
 }
+
+@Suite struct NotificationDeepLinkTests {
+    @Test func chatSpaceMessageOpensTheSpace() {
+        let data = #"["PL9xKKUtSuE/115521195953099467914",[[null,null,null,[null,"6EnDSgKhB6g",[["AAQAxPYsHog"]]]],"PL9xKKUtSuE"]]"#
+        #expect(notificationDeepLink(originHost: "chat.google.com", dataJSON: data)?.absoluteString
+            == "https://chat.google.com/app/chat/AAQAxPYsHog")
+    }
+
+    /// What the shim sends: Chat's `data` is itself a string, so `JSON.stringify` wraps it in quotes.
+    @Test func chatDataPostedAsAJSONStringOpensTheSpace() {
+        let data = #""[\"PL9xKKUtSuE/115521195953099467914\",[[null,null,null,[null,\"6EnDSgKhB6g\",[[\"AAQAxPYsHog\"]]]],\"PL9xKKUtSuE\"]]""#
+        #expect(notificationDeepLink(originHost: "chat.google.com", dataJSON: data)?.absoluteString
+            == "https://chat.google.com/app/chat/AAQAxPYsHog")
+    }
+
+    @Test func chatDirectMessageOpensTheDM() {
+        let data = #"["__g-hcGO2b4/115521195953099467914",[[null,null,null,[null,"__g-hcGO2b4",[null,null,["_SeRSCAAAAE"]]]],"__g-hcGO2b4"]]"#
+        #expect(notificationDeepLink(originHost: "chat.google.com", dataJSON: data)?.absoluteString
+            == "https://chat.google.com/app/chat/_SeRSCAAAAE")
+    }
+
+    @Test(arguments: [nil, "", "null", "{}", #"["a"]"#, #"["a",[[null,null,null,[null,"t",[["../x"]]]]]]"#] as [String?])
+    func unrecognizedDataHasNoLink(data: String?) {
+        #expect(notificationDeepLink(originHost: "chat.google.com", dataJSON: data) == nil)
+    }
+
+    @Test func otherHostsHaveNoLink() {
+        let data = #"["m",[[null,null,null,[null,"t",[["AAQAxPYsHog"]]]],"m"]]"#
+        #expect(notificationDeepLink(originHost: "mail.google.com", dataJSON: data) == nil)
+    }
+}

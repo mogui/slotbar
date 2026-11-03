@@ -211,7 +211,7 @@ Sources: [Panel behaviour](https://github.com/mogui/slotbar/issues/9), [Panel me
 
 - An always-visible ~44 pt strip on the Panel's outer side: vertical for left/right edges, horizontal for top/bottom.
 - One icon per Slot in list order, then a gear button at the end that opens Settings in the Panel; the gear is highlighted while Settings is shown.
-- Each icon: the Slot's favicon, a Profile-color indicator, and the unread badge for that Slot alone (section 8.4). The active Slot is highlighted.
+- Each icon: the Slot's favicon (a gray globe while there is none), a Profile-color bar along its left side, and the unread badge for that Slot alone (section 8.4). The active Slot is highlighted.
 - Tooltip: the Slot label, plus `Cmd+N` for the first nine Slots.
 - Click: makes that Slot active (loading it if Unloaded).
 - Right-click menu: Go home, Open current page in browser, Reload, separator, Notifications (check item bound to the Slot's `notifications` field, saved immediately).
@@ -385,6 +385,7 @@ Sources: [Notification behaviour](https://github.com/mogui/slotbar/issues/12), [
 
 - `didReceive response`: show the Panel on the originating Slot through the normal show path (an Unloaded Slot loads at its reopen URL). Child windows are not brought forward.
 - If the same page instance is still alive, call the page's `onclick` for that native id via `evaluateJavaScript`.
+- Deep link: when no page handler takes the click (no `onclick` and no `click` listener, as with notifications posted through `registration.showNotification`) or the page instance is gone, a link derived from the notification's `data` loads in the Slot through the routed-link path. `chat.google.com`: the space or DM id in `data` opens `https://chat.google.com/app/chat/<id>`. Other hosts have no deep link.
 
 ### 8.4 Unread state and badge
 

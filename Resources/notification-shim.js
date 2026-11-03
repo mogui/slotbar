@@ -24,8 +24,9 @@
       this.onerror = null;
       this._id = null;
       this._closed = false;
+      this._clickListeners = 0;
       this._posted = handler.postMessage({
-        op: "show", title: this.title, body: this.body, tag: this.tag, silent: this.silent, pageId,
+        op: "show", title: this.title, body: this.body, tag: this.tag, silent: this.silent, pageId, data: jsonData(this.data),
       }).then((id) => {
         this._id = id;
         if (this._closed) {
@@ -35,6 +36,11 @@
           this._fire("show");
         }
       }, () => this._fire("error"));
+    }
+
+    addEventListener(type, listener, options) {
+      if (type === "click" && listener) this._clickListeners++;
+      super.addEventListener(type, listener, options);
     }
 
     close() {
@@ -62,6 +68,16 @@
     }
   }
 
+  // `data` for the app's deep link when no page handler opens the conversation (SPEC 8.3).
+  function jsonData(data) {
+    try {
+      const json = JSON.stringify(data);
+      return json && json.length <= 8192 ? json : "";
+    } catch (_) {
+      return "";
+    }
+  }
+
   Object.defineProperty(window, "Notification", { value: Notification, writable: true, configurable: true });
 
   if (window.ServiceWorkerRegistration) {
@@ -70,14 +86,16 @@
     };
   }
 
-  // Called by the app when the user clicks a notification (SPEC 8.3).
+  // Called by the app when the user clicks a notification (SPEC 8.3): "handled" when the page listens for the
+  // click, "unhandled" when nothing does (service worker notifications), false when the notification is gone.
   Object.defineProperty(window, "__slotbarNotificationClicked", {
     value: (id, page) => {
       if (page !== pageId) return false;
       const notification = byId.get(id);
       if (!notification) return false;
+      const handled = typeof notification.onclick === "function" || notification._clickListeners > 0;
       notification._fire("click");
-      return true;
+      return handled ? "handled" : "unhandled";
     },
   });
 })();

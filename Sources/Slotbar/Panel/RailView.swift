@@ -58,10 +58,11 @@ final class RailView: NSView {
         for (index, item) in items.enumerated() {
             let button: NSButton
             if let favicon = icon(item.slotId) {
-                button = faviconButton(favicon, color: item.color.nsColor)
+                button = faviconButton(favicon)
             } else {
-                button = iconButton(symbol: "globe", tint: item.color.nsColor)
+                button = iconButton(symbol: "globe", tint: .secondaryLabelColor)
             }
+            addProfileBar(item.color.nsColor, to: button)
             button.tag = index
             button.target = self
             button.action = #selector(iconClicked(_:))
@@ -102,8 +103,7 @@ final class RailView: NSView {
         return button
     }
 
-    /// The favicon plus a Profile-color dot in the bottom-right corner (SPEC 4.4).
-    private func faviconButton(_ favicon: NSImage, color: NSColor) -> NSButton {
+    private func faviconButton(_ favicon: NSImage) -> NSButton {
         let image = favicon.copy() as! NSImage
         image.size = NSSize(width: 20, height: 20)
         let button = NSButton(image: image, target: nil, action: nil)
@@ -114,14 +114,23 @@ final class RailView: NSView {
             button.widthAnchor.constraint(equalToConstant: 34),
             button.heightAnchor.constraint(equalToConstant: 34),
         ])
-        let dot = NSView(frame: NSRect(x: 24, y: 24, width: 7, height: 7))
-        dot.wantsLayer = true
-        dot.layer?.backgroundColor = color.cgColor
-        dot.layer?.cornerRadius = 3.5
-        dot.layer?.borderWidth = 1
-        dot.layer?.borderColor = NSColor.windowBackgroundColor.cgColor
-        button.addSubview(dot)
         return button
+    }
+
+    /// Profile-color bar along the icon's left side (SPEC 4.4).
+    private func addProfileBar(_ color: NSColor, to button: NSButton) {
+        let bar = NSView()
+        bar.wantsLayer = true
+        bar.layer?.backgroundColor = color.cgColor
+        bar.layer?.cornerRadius = 1.5
+        bar.translatesAutoresizingMaskIntoConstraints = false
+        button.addSubview(bar)
+        NSLayoutConstraint.activate([
+            bar.widthAnchor.constraint(equalToConstant: 3),
+            bar.heightAnchor.constraint(equalToConstant: 18),
+            bar.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 2),
+            bar.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+        ])
     }
 
     /// Small filled capsule over the icon's top trailing corner (SPEC 8.4).

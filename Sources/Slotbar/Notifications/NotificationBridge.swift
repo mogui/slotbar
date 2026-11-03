@@ -16,12 +16,16 @@ final class NotificationBridge: NSObject {
     var panelShowingSlot: () -> UUID? = { nil }
     /// Shows the Panel on a Slot through the normal show path.
     var showSlot: (UUID) -> Void = { _ in }
+    /// Loads a URL in a Slot and shows it (the routed-link path).
+    var openURL: (UUID, URL) -> Void = { _, _ in }
 
     /// Where a native id was raised, to call its `onclick`.
     private struct Origin {
         weak var webView: WKWebView?
         let frame: WKFrameInfo
         let requestId: String
+        /// Opened on click when no page handler takes it (SPEC 8.3).
+        let deepLink: URL?
     }
 
     private var origins: [String: Origin] = [:]
@@ -109,7 +113,8 @@ final class NotificationBridge: NSObject {
         content.sound = silent ? nil : .default
         content.interruptionLevel = .active
 
-        origins[nativeId] = Origin(webView: webView, frame: message.frameInfo, requestId: requestId)
+        let deepLink = notificationDeepLink(originHost: originHost, dataJSON: body["data"] as? String)
+        origins[nativeId] = Origin(webView: webView, frame: message.frameInfo, requestId: requestId, deepLink: deepLink)
         latestNativeId[requestId] = nativeId
         center.add(UNNotificationRequest(identifier: requestId, content: content, trigger: nil)) { error in
             if let error { log.error("Posting notification failed: \(error.localizedDescription, privacy: .public)") }
@@ -127,16 +132,26 @@ final class NotificationBridge: NSObject {
 
     private func clicked(slotId: UUID, pageId: String, nativeId: String) {
         showSlot(slotId)
+        let deepLink = origins[nativeId]?.deepLink
         // The originating webview (the Slot's or one of its Child windows') must still belong to the Slot.
         guard let origin = origins[nativeId], let originWebView = origin.webView,
-              slotForWebView(originWebView)?.id == slotId else { return }
+              slotForWebView(originWebView)?.id == slotId else {
+            log.debug("Notification click: page gone, deep link \(deepLink?.absoluteString ?? "none", privacy: .public)")
+            if let deepLink { openURL(slotId, deepLink) }
+            return
+        }
         // The shim checks the page id, so a reloaded page ignores the click.
         originWebView.callAsyncJavaScript(
             "return window.__slotbarNotificationClicked?.(id, pageId) ?? false",
             arguments: ["id": nativeId, "pageId": pageId], in: origin.frame, in: .page
-        ) { result in
-            if case .failure(let error) = result {
-                log.debug("onclick not delivered: \(error.localizedDescription, privacy: .public)")
+        ) { [weak self] result in
+            MainActor.assumeIsolated {
+                if case .failure(let error) = result {
+                    log.debug("onclick not delivered: \(error.localizedDescription, privacy: .public)")
+                }
+                let handled = if case .success(let value) = result { value as? String == "handled" } else { false }
+                log.debug("Notification click: \(String(describing: result), privacy: .public), deep link \(deepLink?.absoluteString ?? "none", privacy: .public)")
+                if !handled, let deepLink { self?.openURL(slotId, deepLink) }
             }
         }
     }
