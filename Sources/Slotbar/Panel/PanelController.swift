@@ -324,12 +324,12 @@ final class PanelController: NSObject {
         slotArea.autoresizingMask = [.width, .height]
     }
 
-    /// "No Slots" with an "Open Settings" button (SPEC 4.4).
+    /// "No Slots" with an "Open Settings" button opening Settings > Slots, or > Profiles (SPEC 4.4).
     private static func makeEmptyState() -> NSView {
         let label = NSTextField(labelWithString: "No Slots")
         label.font = .systemFont(ofSize: NSFont.systemFontSize + 4, weight: .semibold)
         label.textColor = .secondaryLabelColor
-        let button = NSButton(title: "Open Settings", target: nil, action: #selector(AppDelegate.showSettings(_:)))
+        let button = NSButton(title: "Open Settings", target: nil, action: #selector(AppDelegate.showSettingsForEmptyState(_:)))
         let stack = NSStackView(views: [label, button])
         stack.orientation = .vertical
         stack.spacing = 12

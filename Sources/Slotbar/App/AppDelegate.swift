@@ -38,7 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let openAtLogin = OpenAtLogin(service: MainAppLoginItem(), store: store)
         openAtLogin.healAtLaunch()
         settingsWindow = SettingsWindowController(store: store, hotkey: hotkey, openAtLogin: openAtLogin,
-                                                  deleteProfile: { [weak self] id in self?.deleteProfile(id) })
+                                                  favicons: favicons, deleteProfile: { [weak self] id in self?.deleteProfile(id) })
         notificationBridge.slotForWebView = { [weak self] webView in
             self?.slotControllers.first { $0.owns(webView) }?.slot
         }
@@ -196,6 +196,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func showSettings(_ sender: Any?) {
         settingsWindow?.show()
+    }
+
+    /// The Panel's empty-state button (SPEC 4.4).
+    @objc func showSettingsForEmptyState(_ sender: Any?) {
+        guard let settings = settingsStore?.settings else { return }
+        settingsWindow?.show(tab: .forEmptyState(settings: settings))
     }
 
     /// Shown at every launch while the app runs translocated or outside Applications (SPEC 12.5).
