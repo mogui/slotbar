@@ -126,14 +126,12 @@ final class PanelController: NSObject {
         isShowing ? activeSlot : nil
     }
 
-    /// Shows the Panel on a Slot (loading it if Unloaded) and returns that Slot's webview.
-    @discardableResult
-    func show(slot id: UUID) -> WKWebView? {
-        let wasShowing = isShowing
+    /// Makes the Slot active (loading it if Unloaded), showing the Panel if it is hidden.
+    func show(slot id: UUID) {
         activeSlot = id
         show()
-        if wasShowing { activate(id) }
-        return controllers.first { $0.slot.id == id }?.webView
+        // Also when `show()` found the window still visible (a hide sliding out) and activated nothing.
+        activate(id)
     }
 
     func show() {
@@ -179,13 +177,6 @@ final class PanelController: NSObject {
             self.window.level = .floating
             log.debug("Panel shown")
         }
-    }
-
-    /// Makes the Slot active, showing the Panel if it is hidden.
-    func show(slot id: UUID) {
-        activeSlot = id
-        show()
-        activate(id)
     }
 
     func hide() {
