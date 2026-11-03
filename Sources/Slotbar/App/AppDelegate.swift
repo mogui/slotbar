@@ -16,6 +16,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: SettingsWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Failed store removals are retried before any webview exists (SPEC 3.4).
+        Task {
+            await profileStores.retryPendingDeletions()
+            launch()
+        }
+    }
+
+    private func launch() {
         let supportDirectory = URL.applicationSupportDirectory.appendingPathComponent("Slotbar")
         let store = SettingsStore(directory: supportDirectory)
         settingsStore = store
@@ -28,7 +36,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkey = Hotkey { panel.toggle() }
         let openAtLogin = OpenAtLogin(service: MainAppLoginItem(), store: store)
         openAtLogin.healAtLaunch()
-        settingsWindow = SettingsWindowController(store: store, hotkey: hotkey, openAtLogin: openAtLogin)
+        settingsWindow = SettingsWindowController(store: store, hotkey: hotkey, openAtLogin: openAtLogin,
+                                                  deleteProfile: { [weak self] id in self?.deleteProfile(id) })
         notificationBridge.slotForWebView = { [weak self] webView in
             self?.slotControllers.first { $0.webView === webView }?.slot
         }
@@ -65,6 +74,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Keeps one SlotController per Slot (reused by id), drops stale favicons and hands the controllers to the Panel.
     private func apply(_ settings: Settings) {
         let remaining = Set(settings.slots.map(\.id))
+        for controller in slotControllers where !remaining.contains(controller.slot.id) {
+            controller.close()
+        }
         notificationBridge.removeDelivered(slotIds: Set(slotControllers.map(\.slot.id)).subtracting(remaining))
         guard let favicons else { return }
         for id in faviconCachesToDelete(old: slotControllers.map(\.slot), new: settings.slots) {
@@ -114,6 +126,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let controller = slotControllers.first(where: { $0.slot.id == id }) else { return }
         controller.load(at: url)
         panelController?.show(slot: id)
+    }
+
+    /// Cascade (SPEC 3.4, 5): the Settings write closes the Profile's Slots and drops their notifications
+    /// and favicon caches in `apply`, then the data store is removed (or queued for the next launch).
+    private func deleteProfile(_ id: UUID) {
+        settingsStore?.update { $0.deleteProfile(id) }
+        Task { await profileStores.delete(id) }
     }
 
     private func perform(_ action: SlotAction, on id: UUID) {

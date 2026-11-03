@@ -69,6 +69,17 @@ final class SlotController: NSObject, WKNavigationDelegate {
         return webView
     }
 
+    /// Destroys the webview of a deleted Slot so its Profile's data store is no longer attached (SPEC 3.4, 5).
+    func close() {
+        guard let webView else { return }
+        webView.stopLoading()
+        webView.removeFromSuperview()
+        webView.configuration.userContentController.removeAllScriptMessageHandlers()
+        self.webView = nil
+        unreadMonitor = nil
+        log.debug("Closed Slot \(self.slot.id, privacy: .public)")
+    }
+
     /// Go home, open current page in browser, reload (SPEC 7.5). Loads the Slot first if needed.
     func perform(_ action: SlotAction) {
         switch action {
