@@ -1,49 +1,37 @@
 import SwiftUI
 
-/// Settings > Profiles (SPEC 10.2): color swatch, inline-editable name, +/- buttons.
+/// Settings, Profiles section (SPEC 10.2): color swatch, inline-editable name, delete button per row, "+" in the header.
 struct ProfilesView: View {
     let store: SettingsStore
     /// Runs the deletion cascade (SPEC 3.4, 5).
     let deleteProfile: (UUID) -> Void
-    @State private var selection: UUID?
     @State private var pendingDeletion: Profile?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            List(selection: $selection) {
-                ForEach(store.settings.profiles) { profile in
-                    ProfileRow(store: store, profile: profile).tag(profile.id)
-                }
+        Section {
+            ForEach(store.settings.profiles) { profile in
+                ProfileRow(store: store, profile: profile) { pendingDeletion = profile }
             }
-            .listStyle(.bordered)
-            .frame(height: 220)
-            HStack(spacing: 0) {
-                Button { add() } label: { Image(systemName: "plus").frame(width: 24, height: 20) }
-                Button { pendingDeletion = selectedProfile } label: { Image(systemName: "minus").frame(width: 24, height: 20) }
-                    .disabled(selectedProfile == nil)
+            if store.settings.profiles.isEmpty {
+                Text("No Profiles").foregroundStyle(.secondary)
+            }
+        } header: {
+            HStack {
+                Text("Profiles")
                 Spacer()
+                Button { add() } label: { Image(systemName: "plus") }
+                    .buttonStyle(.borderless)
+                    .help("Add Profile")
             }
-            .buttonStyle(.borderless)
-            .padding(.top, 4)
         }
-        .padding(20)
-        .frame(width: 460)
-        .fixedSize()
         .alert(deletionTitle, isPresented: Binding(get: { pendingDeletion != nil },
                                                   set: { if !$0 { pendingDeletion = nil } }),
                presenting: pendingDeletion) { profile in
-            Button("Delete", role: .destructive) {
-                selection = nil
-                deleteProfile(profile.id)
-            }
+            Button("Delete", role: .destructive) { deleteProfile(profile.id) }
             Button("Cancel", role: .cancel) {}
         } message: { profile in
             Text(deletionMessage(profile))
         }
-    }
-
-    private var selectedProfile: Profile? {
-        store.settings.profiles.first { $0.id == selection }
     }
 
     private var deletionTitle: String {
@@ -59,15 +47,14 @@ struct ProfilesView: View {
     }
 
     private func add() {
-        let id = UUID()
-        store.update { $0.addProfile(id: id) }
-        selection = id
+        store.update { $0.addProfile(id: UUID()) }
     }
 }
 
 private struct ProfileRow: View {
     let store: SettingsStore
     let profile: Profile
+    let delete: () -> Void
     @State private var name = ""
     @State private var choosingColor = false
     @FocusState private var editing: Bool
@@ -91,6 +78,10 @@ private struct ProfileRow: View {
                 .focused($editing)
                 .onSubmit(commit)
                 .onChange(of: editing) { _, isEditing in if !isEditing { commit() } }
+            Button(action: delete) { Image(systemName: "trash") }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .help("Delete Profile")
         }
         .onAppear { name = profile.name }
         .onChange(of: profile.name) { _, newName in name = newName }

@@ -376,6 +376,6 @@ private final class WeakScriptHandler: NSObject, WKScriptMessageHandler {
 }
 
 extension WKNavigationAction {
-    /// Cmd-click or middle-click (SPEC 7.1).
-    var opensOutside: Bool { modifierFlags.contains(.command) || buttonNumber == 1 }
+    /// Cmd-click or middle-click (SPEC 7.1). WebKit reports a button mask: left 1, right 2, middle 4.
+    var opensOutside: Bool { modifierFlags.contains(.command) || buttonNumber == 4 }
 }

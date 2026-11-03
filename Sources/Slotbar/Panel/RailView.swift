@@ -51,7 +51,8 @@ final class RailView: NSView {
     required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
 
     /// `icon` returns a Slot's cached favicon; Slots without one show the globe tinted with the Profile color.
-    func update(items: [RailItem], icon: (UUID) -> NSImage?) {
+    /// `settingsActive` highlights the gear while Settings fills the Slot area.
+    func update(items: [RailItem], settingsActive: Bool, icon: (UUID) -> NSImage?) {
         self.items = items
         stack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         for (index, item) in items.enumerated() {
@@ -81,6 +82,9 @@ final class RailView: NSView {
         let gear = iconButton(symbol: "gearshape", tint: .secondaryLabelColor)
         gear.action = #selector(AppDelegate.showSettings(_:))
         gear.toolTip = "Settings"
+        gear.wantsLayer = true
+        gear.layer?.cornerRadius = 7
+        gear.layer?.backgroundColor = settingsActive ? NSColor.controlAccentColor.withAlphaComponent(0.25).cgColor : nil
         stack.addArrangedSubview(gear)
     }
 

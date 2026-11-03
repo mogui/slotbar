@@ -12,7 +12,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let notificationBridge = NotificationBridge()
     private var favicons: FaviconCache?
     private let slotRegistry = SlotRegistry()
-    private var settingsWindow: SettingsWindowController?
     private var memoryPressure: DispatchSourceMemoryPressure?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -36,8 +35,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkey = Hotkey { panel.toggle() }
         let openAtLogin = OpenAtLogin(service: MainAppLoginItem(), store: store)
         openAtLogin.healAtLaunch()
-        settingsWindow = SettingsWindowController(store: store, hotkey: hotkey, openAtLogin: openAtLogin,
-                                                  favicons: favicons, deleteProfile: { [weak self] id in self?.deleteProfile(id) })
+        panel.settingsPane = SettingsPane(store: store, hotkey: hotkey, openAtLogin: openAtLogin,
+                                          favicons: favicons, deleteProfile: { [weak self] id in self?.deleteProfile(id) })
         notificationBridge.slotForWebView = { [weak self] webView in
             self?.slotRegistry.controller(owning: webView)?.slot
         }
@@ -180,13 +179,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func showSettings(_ sender: Any?) {
-        settingsWindow?.show()
-    }
-
-    /// The Panel's empty-state button (SPEC 4.4).
-    @objc func showSettingsForEmptyState(_ sender: Any?) {
-        guard let settings = settingsStore?.settings else { return }
-        settingsWindow?.show(tab: .forEmptyState(settings: settings))
+        panelController?.showSettings()
     }
 
     /// Shown at every launch while the app runs translocated or outside Applications (SPEC 12.5).

@@ -88,15 +88,3 @@ import Testing
         #expect(settings.slots[2].profileId == other)
     }
 }
-
-@Suite struct EmptyStateTabTests {
-    @Test func opensSlotsWhenAProfileExists() {
-        #expect(SettingsTab.forEmptyState(settings: Settings.preset()) == .slots)
-    }
-
-    @Test func opensProfilesWhenThereAreNoProfiles() {
-        var settings = Settings.preset()
-        settings.deleteProfile(settings.profiles[0].id)
-        #expect(SettingsTab.forEmptyState(settings: settings) == .profiles)
-    }
-}

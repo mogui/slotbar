@@ -9,7 +9,7 @@ Sources: [Choose the stack](https://github.com/mogui/slotbar/issues/8), [RAM foo
 | Topic | Decision |
 |---|---|
 | Language / UI | Swift 6 (language mode 6), AppKit, WKWebView. |
-| SwiftUI | Only for the content of the Settings window, hosted in an `NSWindow` via `NSHostingController`. There is no `MenuBarExtra` and no `Settings` scene. |
+| SwiftUI | Only for the content of Settings, hosted in the Panel via `NSHostingController`. There is no `MenuBarExtra` and no `Settings` scene. |
 | Minimum macOS | 14 Sonoma (`WKWebsiteDataStore(forIdentifier:)`). Tested on 26.x. 14 and 15 are best effort, and OS-version branches are added only for reported bugs. |
 | Dependencies | Exactly one: [`sindresorhus/KeyboardShortcuts`](https://github.com/sindresorhus/KeyboardShortcuts) (Carbon `RegisterEventHotKey` + recorder UI), via SwiftPM. |
 | User agent | Hardcoded desktop Firefox-on-macOS UA set as `customUserAgent` on every webview (Slots and Child windows): `Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:<V>.0) Gecko/20100101 Firefox/<V>.0`, where `<V>` is the current Firefox release at build time and is bumped with releases. Hidden override: `defaults write io.github.mogui.slotbar UserAgent "<string>"`, read at launch; empty or missing uses the constant. No Settings field. |
@@ -210,14 +210,14 @@ Sources: [Panel behaviour](https://github.com/mogui/slotbar/issues/9), [Panel me
 ### 4.4 Rail
 
 - An always-visible ~44 pt strip on the Panel's outer side: vertical for left/right edges, horizontal for top/bottom.
-- One icon per Slot in list order, then a gear button at the end that opens Settings.
+- One icon per Slot in list order, then a gear button at the end that opens Settings in the Panel; the gear is highlighted while Settings is shown.
 - Each icon: the Slot's favicon, a Profile-color indicator, and the unread badge for that Slot alone (section 8.4). The active Slot is highlighted.
 - Tooltip: the Slot label, plus `Cmd+N` for the first nine Slots.
 - Click: makes that Slot active (loading it if Unloaded).
 - Right-click menu: Go home, Open current page in browser, Reload, separator, Notifications (check item bound to the Slot's `notifications` field, saved immediately).
 - **Unloaded** Slots look the same as loaded ones (last favicon, no badge). The crash placeholder (section 6.4) is the only lifecycle UI.
 - Favicon source: `favicon.js` (document start, main frame) reports the best `link[rel~="icon"]` URL; if none, `/favicon.ico` on the Home host. The image is fetched through the Slot's data store, scaled to 64x64 px, and cached to `favicons/<slot-id>.png`. It is refreshed when the icon link changes, except for Slots whose Home host is `chat.google.com`: they keep the first icon seen, because Chat swaps dot / no-dot favicon variants that feed only the Unread state. A Slot with no cached icon shows SF Symbol `globe` tinted with the Profile color. A Slot's cache file is deleted with the Slot and when its URL or Profile changes.
-- With no Slots, the Panel shows only the Rail gear and a centered empty state "No Slots" with an "Open Settings" button that opens Settings > Slots (Settings > Profiles when there are no Profiles).
+- With no Slots, the Panel shows only the Rail gear and a centered empty state "No Slots" with an "Open Settings" button that opens Settings.
 
 ### 4.5 Show, hide, toggle
 
@@ -230,7 +230,7 @@ Sources: [Panel behaviour](https://github.com/mogui/slotbar/issues/9), [Panel me
 - A notification click and a routed link use the same show path, with a given target Slot.
 - Hide: order out the Panel and its Child windows, then reactivate the previously frontmost app.
 - Animation: 0.2 s slide from just outside the visible frame on the chosen edge (ease-out on show, ease-in on hide), via `NSAnimationContext` and `window.animator().setFrame`. A hide during a slide reverses from the current position. With Reduce motion on (`NSWorkspace.shared.accessibilityDisplayShouldReduceMotion`), a ~0.15 s fade replaces the slide. No setting.
-- Auto-hide ("Hide when Slotbar loses focus", on by default): when any Slotbar window resigns key and the new key window is not a Slotbar window, hide. Sheets, open/save panels, JS dialogs, Settings and Child windows therefore never hide it.
+- Auto-hide ("Hide when Slotbar loses focus", on by default): when any Slotbar window resigns key and the new key window is not a Slotbar window, hide. Sheets, open/save panels, JS dialogs and Child windows therefore never hide it.
 - Auto-hide off: the Panel stays `.floating` above other apps until toggled away. Clicking another app gives that app key and leaves the Panel on top.
 
 ### 4.6 Status item
@@ -317,7 +317,7 @@ Decided once per navigation, in `decidePolicyFor navigationAction`, on its first
 | `google.<any TLD>/url?q=` or `?url=` wrappers | Unwrap and route the real target. If it is missing or not absolute `http`/`https`, open the wrapper as is in the default browser. |
 | `meet.google.com` | Default browser, unless a same-Profile Slot has it as Home host. |
 | Non-`http(s)` schemes (`mailto:`, `tel:`, `zoommtg:` ...) | `NSWorkspace.shared.open` (macOS default handler). `about:`, `blob:`, `data:` and `javascript:` from the page itself load in place. |
-| Cmd-click or middle-click (`modifierFlags.contains(.command)` or `buttonNumber == 1`) | Always the default browser, even on the Home host. |
+| Cmd-click or middle-click (`modifierFlags.contains(.command)` or `buttonNumber == 4`) | Always the default browser, even on the Home host. |
 | In-page previews (same-host overlays) | Stay (they are Home-host navigations or no navigation). |
 | Drive, Docs, Sheets, Slides, full-page previewers | Normal rule. |
 
@@ -434,31 +434,31 @@ Sources: [Keyboard input in a non-activating Panel](https://github.com/mogui/slo
 
 Sources: [Settings data model and UI](https://github.com/mogui/slotbar/issues/10), [Panel behaviour](https://github.com/mogui/slotbar/issues/9), [Notification behaviour](https://github.com/mogui/slotbar/issues/12), [Build and release pipeline](https://github.com/mogui/slotbar/issues/16)
 
-- One standard macOS settings window: an `NSWindow` (titled, closable, not resizable below its content) hosting a SwiftUI `TabView` with toolbar-style tabs General, Profiles, Slots. Opened by `Cmd+,`, the status menu, the Rail gear and the empty-state button. Opening it brings the app forward; it does not hide the Panel.
-- Every edit is saved immediately to `settings.json` and applied live. A change made from the Rail menu shows live in an open Settings window.
+- Settings is shown inside the Panel, in the Slot area in place of the active Slot: one scrolling page, a grouped SwiftUI `Form` in a centered column of at most 640 pt, with the sections General, Profiles, Slots. Opened by `Cmd+,`, the status menu, the Rail gear and the empty-state button; opening it shows the Panel. Clicking a Slot icon or a `Cmd+1...9` shortcut returns to that Slot; the next show of the Panel shows a Slot. While Settings is shown, no Slot counts as on screen.
+- Every edit is saved immediately to `settings.json` and applied live. A change made from the Rail menu shows live in Settings.
 
 ### 10.1 General
 
 | Row | Behaviour |
 |---|---|
 | Global hotkey | `KeyboardShortcuts.Recorder` for `togglePanel`. Inline warning when registration failed. |
-| Panel edge | Left / Right / Top / Bottom, default Right. Applies at the next show and keeps the depth. |
-| Hide when Slotbar loses focus | Checkbox, on. |
-| Open at login | Checkbox, off. On calls `SMAppService.mainApp.register()`, off calls `unregister()`. If registration fails, an inline error appears and the box stays off. |
+| Panel edge | Segmented control Left / Right / Top / Bottom, default Right. Applies at the next show and keeps the depth. |
+| Hide when Slotbar loses focus | Switch, on. |
+| Open at login | Switch, off. On calls `SMAppService.mainApp.register()`, off calls `unregister()`. If registration fails, an inline error appears and the switch stays off. |
 | Notifications are off in System Settings | Shown only when authorization is denied, with an Open button. |
 
 ### 10.2 Profiles
 
-- List of Profiles: color swatch, name (editable inline), +/- buttons.
+- One row per Profile: color swatch, name (editable inline), trash button. A "+" button in the section header adds a Profile.
 - Color: a fixed 8-color palette shown as swatches: blue `#007AFF`, purple `#AF52DE`, pink `#FF2D55`, red `#FF3B30`, orange `#FF9500`, yellow `#FFCC00`, green `#34C759`, graphite `#8E8E93`. A new Profile gets the first unused color; when all 8 are used, the least-used color, first in palette order on ties. Its default name is "Profile N".
-- "-" asks for confirmation listing the Slots that will be deleted with it, then cascades (section 5). Deleting the last Profile is allowed.
+- The trash button asks for confirmation listing the Slots that will be deleted with it, then cascades (section 5). Deleting the last Profile is allowed.
 
 ### 10.3 Slots
 
-- A list in Slot order, reordered by drag and drop. Columns: Icon, Label (editable inline; clearing it sets `label: null`, so the auto-label is set again at the next load), URL, Profile (popup), Keep-alive (checkbox), Notifications (checkbox).
-- "+" opens a sheet with URL (required) and Profile (popup, default the first Profile). The URL must parse as absolute `http` or `https`; a bare host gets `https://` prepended. The new Slot is appended with Keep-alive on, Notifications on and `label: null`. "+" is disabled with the hint "Add a Profile first" when there are no Profiles.
+- One row per Slot in Slot order: icon; Label (editable inline; clearing it sets `label: null`, so the auto-label is set again at the next load); URL below it; then Profile (popup), Keep-alive (checkbox), Notifications (checkbox). A menu button on each row offers Move Up, Move Down and Delete.
+- A "+" button in the section header opens a sheet with URL (required) and Profile (popup, default the first Profile). The URL must parse as absolute `http` or `https`; a bare host gets `https://` prepended. The new Slot is appended with Keep-alive on, Notifications on and `label: null`. "+" is disabled and the section shows "Add a Profile first" when there are no Profiles.
 - Editing the URL or the Profile keeps the label and position, closes the Slot's Child windows, clears its reopen URL and deletes its cached favicon. A URL change resets the Home host, and routing uses the new one immediately. A loaded Slot reloads at the new URL (a Profile change recreates its webview on the new Profile's store). An Unloaded Slot is only updated in the model and loads the new URL on next open.
-- "-" deletes the selected Slot with no confirmation (section 5).
+- Delete removes the Slot with no confirmation (section 5).
 
 ## 11. First-run preset
 

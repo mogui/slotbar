@@ -19,6 +19,8 @@ rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp "$bin_dir/Slotbar" "$app/Contents/MacOS/Slotbar"
 find Resources -maxdepth 1 -type f ! -name Info.plist -exec cp {} "$app/Contents/Resources/" \;
+# SwiftPM resource bundles of dependencies (KeyboardShortcuts), looked up via Bundle.main.resourceURL.
+find "$bin_dir" -maxdepth 1 -name "*.bundle" -exec cp -R {} "$app/Contents/Resources/" \;
 
 sed -e "s/__VERSION__/${VERSION:-0.0.0-dev}/" -e "s/__BUILD_NUMBER__/${BUILD_NUMBER:-0}/" \
   Resources/Info.plist > "$app/Contents/Info.plist"

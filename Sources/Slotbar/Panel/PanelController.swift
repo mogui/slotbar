@@ -28,6 +28,9 @@ final class PanelController: NSObject {
     /// Bumped by every show/hide so a superseded animation's completion does nothing.
     private var animationID = 0
     private var isShowing = false
+    /// Settings (SPEC 10), shown in the Slot area in place of the active Slot.
+    var settingsPane: SettingsPane?
+    private var showsSettings = false
 
     init(settingsStore: SettingsStore, favicons: FaviconCache) {
         self.settingsStore = settingsStore
@@ -58,7 +61,7 @@ final class PanelController: NSObject {
     func update(settings: Settings, controllers: [SlotController]) {
         self.settings = settings
         self.controllers = controllers
-        if isShowing {
+        if isShowing && !showsSettings {
             activate(slotToShow(slots: settings.slots, lastActive: activeSlot))
         } else {
             refreshRail()
@@ -124,7 +127,21 @@ final class PanelController: NSObject {
 
     /// The Slot the Panel shows while on screen, else nil.
     var visibleSlot: UUID? {
-        isShowing ? activeSlot : nil
+        isShowing && !showsSettings ? activeSlot : nil
+    }
+
+    /// Shows the Panel with Settings in the Slot area.
+    func showSettings() {
+        guard let settingsPane else { return }
+        show()
+        showsSettings = true
+        let view = settingsPane.view
+        slotArea.subviews.forEach { $0.removeFromSuperview() }
+        view.frame = slotArea.bounds
+        view.autoresizingMask = [.width, .height]
+        slotArea.addSubview(view)
+        updateShown()
+        refreshRail()
     }
 
     /// Makes the Slot active (loading it if Unloaded), showing the Panel if it is hidden.
@@ -152,12 +169,8 @@ final class PanelController: NSObject {
         let visible = screen.visibleFrame
         let shown = panelFrame(visibleFrame: visible, edge: edge, depthFraction: storedFraction)
         let wasShowing = window.isVisible
-        resizeHandle.place(on: edge, in: shown.size)
-        layoutContent(size: shown.size)
-        if !wasShowing { activate(slotToShow(slots: settings?.slots ?? [], lastActive: activeSlot)) }
-
-        animationID += 1
-        let id = animationID
+        // Size the window before laying out: subviews laid out for `shown.size` inside a differently sized
+        // content view (zero on first show) get shifted by autoresizing when the window resizes.
         if !wasShowing {
             if reduceMotion {
                 window.alphaValue = 0
@@ -167,6 +180,12 @@ final class PanelController: NSObject {
                 window.setFrame(offscreenFrame(shownFrame: shown, visibleFrame: visible, edge: edge), display: false)
             }
         }
+        resizeHandle.place(on: edge, in: shown.size)
+        layoutContent(size: shown.size)
+        if !wasShowing { activate(slotToShow(slots: settings?.slots ?? [], lastActive: activeSlot)) }
+
+        animationID += 1
+        let id = animationID
         window.level = .popUpMenu
         window.makeKeyAndOrderFront(nil)
         childWindows.forEach { $0.showWithPanel() }
@@ -266,6 +285,7 @@ final class PanelController: NSObject {
     /// Makes a Slot active, loading it if needed; `nil` shows the empty state.
     private func activate(_ id: UUID?) {
         activeSlot = id
+        showsSettings = false
         slotArea.subviews.forEach { $0.removeFromSuperview() }
         let view: NSView
         if let id, let controller = controllers.controller(for: id) {
@@ -288,7 +308,8 @@ final class PanelController: NSObject {
         for controller in controllers {
             if let state = controller.unread { unread[controller.slot.id] = state }
         }
-        rail.update(items: railItems(settings: settings, activeSlot: activeSlot, unread: unread)) { [favicons] in favicons.image(for: $0) }
+        rail.update(items: railItems(settings: settings, activeSlot: showsSettings ? nil : activeSlot, unread: unread),
+                    settingsActive: showsSettings) { [favicons] in favicons.image(for: $0) }
     }
 
     /// Rail on the outer side (next to the screen edge), Slot area filling the rest; both follow live resizes.
@@ -316,12 +337,12 @@ final class PanelController: NSObject {
         slotArea.autoresizingMask = [.width, .height]
     }
 
-    /// "No Slots" with an "Open Settings" button opening Settings > Slots, or > Profiles (SPEC 4.4).
+    /// "No Slots" with an "Open Settings" button (SPEC 4.4).
     private static func makeEmptyState() -> NSView {
         let label = NSTextField(labelWithString: "No Slots")
         label.font = .systemFont(ofSize: NSFont.systemFontSize + 4, weight: .semibold)
         label.textColor = .secondaryLabelColor
-        let button = NSButton(title: "Open Settings", target: nil, action: #selector(AppDelegate.showSettingsForEmptyState(_:)))
+        let button = NSButton(title: "Open Settings", target: nil, action: #selector(AppDelegate.showSettings(_:)))
         let stack = NSStackView(views: [label, button])
         stack.orientation = .vertical
         stack.spacing = 12
