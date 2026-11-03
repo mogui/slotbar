@@ -221,6 +221,11 @@ final class SlotController: NSObject, WKNavigationDelegate {
                 self.lifecycle.setChildWindowCount(self.childWindows.count, at: Date())
                 self.onChildWindowClosed?()
             }
+            // A sign-in popup that lands on the Home host ends Sign-in mode, like the Slot's own commit (SPEC 7.2).
+            child.onCommit = { [weak self] url in
+                guard let self else { return }
+                self.signInMode.didCommit(url, homeHost: self.slot.homeHost)
+            }
             childWindows.append(child)
             lifecycle.setChildWindowCount(childWindows.count, at: Date())
             child.show()

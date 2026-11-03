@@ -12,6 +12,8 @@ final class ChildWindowController: NSObject, NSWindowDelegate, WKNavigationDeleg
     let window: ChildWindow
     /// Called once, after the window closed for any reason.
     var onClose: ((ChildWindowController) -> Void)?
+    /// The window's main frame committed a navigation to this URL.
+    var onCommit: ((URL) -> Void)?
     var profileName: String {
         didSet { updateTitle() }
     }
@@ -106,6 +108,10 @@ final class ChildWindowController: NSObject, NSWindowDelegate, WKNavigationDeleg
 
     func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
         download.delegate = DownloadManager.shared
+    }
+
+    func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+        if let url = webView.url { onCommit?(url) }
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
