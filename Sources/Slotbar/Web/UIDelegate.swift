@@ -1,10 +1,22 @@
 import AppKit
 import WebKit
 
-/// JS dialogs and file pickers as sheets on the owning window; media capture and geolocation denied (SPEC 7.4, 7.6).
+/// Popups (SPEC 7.3), JS dialogs and file pickers as sheets on the owning window; media capture and geolocation denied (SPEC 7.4, 7.6).
 @MainActor
 final class UIDelegate: NSObject, WKUIDelegate {
     static let shared = UIDelegate()
+    /// `window.open` / `target=_blank` from a Slot or Child window webview (SPEC 7.3); nil = no window.
+    var openPopup: ((_ opener: WKWebView, WKWebViewConfiguration, WKNavigationAction, WKWindowFeatures) -> WKWebView?)?
+    /// The page called `window.close()`.
+    var closeWebView: ((WKWebView) -> Void)?
+
+    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+        openPopup?(webView, configuration, navigationAction, windowFeatures)
+    }
+
+    func webViewDidClose(_ webView: WKWebView) {
+        closeWebView?(webView)
+    }
 
     func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping @MainActor () -> Void) {
         let alert = Self.alert(message, frame: frame)

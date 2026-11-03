@@ -30,7 +30,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openAtLogin.healAtLaunch()
         settingsWindow = SettingsWindowController(store: store, hotkey: hotkey, openAtLogin: openAtLogin)
         notificationBridge.slotForWebView = { [weak self] webView in
-            self?.slotControllers.first { $0.webView === webView }?.slot
+            self?.slotControllers.first { $0.owns(webView) }?.slot
+        }
+        UIDelegate.shared.openPopup = { [weak self] opener, configuration, action, features in
+            self?.slotControllers.first { $0.owns(opener) }?
+                .openPopup(from: opener, configuration: configuration, action: action, features: features)
+        }
+        UIDelegate.shared.closeWebView = { [weak self] webView in
+            self?.slotControllers.first { $0.owns(webView) }?.webViewDidClose(webView)
         }
         notificationBridge.loadedSlots = { [weak self] in
             self?.slotControllers.filter { $0.webView != nil }.map(\.slot) ?? []
@@ -66,6 +73,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func apply(_ settings: Settings) {
         let remaining = Set(settings.slots.map(\.id))
         notificationBridge.removeDelivered(slotIds: Set(slotControllers.map(\.slot.id)).subtracting(remaining))
+        for controller in slotControllers where !remaining.contains(controller.slot.id) {
+            controller.closeChildWindows()
+        }
         guard let favicons else { return }
         for id in faviconCachesToDelete(old: slotControllers.map(\.slot), new: settings.slots) {
             favicons.remove(id)
@@ -87,9 +97,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             controller.onFaviconChange = { [weak self] _ in self?.panelController?.refreshRail() }
             controller.onUnreadChange = { [weak self] in self?.refreshBadges() }
             controller.onRoute = { [weak self] id, url in self?.openRouted(id, url) }
+            controller.childWindowPlacement = { [weak self] width, height in
+                self?.panelController?.childWindowFrame(width: width, height: height) ?? NSRect(x: 0, y: 0, width: 800, height: 700)
+            }
+            controller.onChildWindowClosed = { [weak self] in self?.panelController?.childWindowClosed() }
             return controller
         }
-        for controller in slotControllers { controller.slots = settings.slots }
+        for controller in slotControllers {
+            controller.slots = settings.slots
+            controller.profileName = settings.profiles.first { $0.id == controller.slot.profileId }?.name ?? ""
+        }
         panelController?.update(settings: settings, controllers: slotControllers)
         refreshBadges()
     }

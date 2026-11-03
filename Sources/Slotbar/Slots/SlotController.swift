@@ -29,6 +29,17 @@ final class SlotController: NSObject, WKNavigationDelegate {
 
     var isInSignInMode: Bool { signInMode.isActive(at: Date()) }
 
+    /// Open Child windows (SPEC 4.7), oldest first.
+    private(set) var childWindows: [ChildWindowController] = []
+    /// Shown in Child window titles.
+    var profileName = "" {
+        didSet { childWindows.forEach { $0.profileName = profileName } }
+    }
+    /// Frame for a new Child window from the `window.open` width and height (Panel's screen, off the Panel).
+    var childWindowPlacement: ((_ width: CGFloat?, _ height: CGFloat?) -> NSRect)?
+    /// A Child window closed (Cmd+W, `window.close()`, its crash, or the Slot closing it).
+    var onChildWindowClosed: (() -> Void)?
+
     /// Page title of a completed main-frame load while the Slot's label is null.
     var onUnlabeledLoad: ((_ slotId: UUID, _ pageTitle: String) -> Void)?
     /// A new favicon was cached.
@@ -81,6 +92,54 @@ final class SlotController: NSObject, WKNavigationDelegate {
         case .toggleNotifications:
             break
         }
+    }
+
+    /// The Slot's webview or one of its Child windows' webviews.
+    func owns(_ webView: WKWebView) -> Bool {
+        webView === self.webView || childWindows.contains { $0.webView === webView }
+    }
+
+    /// A popup from the Slot or one of its Child windows (SPEC 7.3): returns the Child window's webview, or nil.
+    func openPopup(from opener: WKWebView, configuration: WKWebViewConfiguration,
+                   action: WKNavigationAction, features: WKWindowFeatures) -> WKWebView? {
+        let route = popupRoute(url: action.request.url, openerURL: opener.url, from: slot, slots: slots,
+                               inSignInMode: isInSignInMode,
+                               opensOutside: action.modifierFlags.contains(.command) || action.buttonNumber == 1)
+        #if DEBUG
+        log.debug("Popup \(action.request.url?.absoluteString ?? "", privacy: .public) from Slot \(self.slot.id, privacy: .public): \(String(describing: route), privacy: .public)")
+        #endif
+        switch route {
+        case .childWindow, .signIn:
+            if route == .signIn { signInMode.enter(at: Date()) }
+            let width = features.width.map { CGFloat($0.doubleValue) }
+            let height = features.height.map { CGFloat($0.doubleValue) }
+            let frame = childWindowPlacement?(width, height) ?? NSRect(x: 0, y: 0, width: 800, height: 700)
+            let child = ChildWindowController(configuration: configuration, frame: frame, profileName: profileName)
+            child.onClose = { [weak self] child in
+                self?.childWindows.removeAll { $0 === child }
+                self?.onChildWindowClosed?()
+            }
+            childWindows.append(child)
+            child.show()
+            return child.webView
+        case .slot(let id, let target):
+            onRoute?(id, target)
+        case .browser(let target):
+            NSWorkspace.shared.open(target)
+        case .discard:
+            break
+        }
+        return nil
+    }
+
+    /// `window.close()` from a Child window's page closes it; the Slot's own webview ignores it.
+    func webViewDidClose(_ webView: WKWebView) {
+        childWindows.first { $0.webView === webView }?.close()
+    }
+
+    /// Slot unloaded, crashed or deleted (SPEC 4.7).
+    func closeChildWindows() {
+        childWindows.forEach { $0.close() }
     }
 
     /// The Slot's Unread state while loaded; nil when Unloaded (contributes nothing).
@@ -205,8 +264,9 @@ private final class WeakScriptHandler: NSObject, WKScriptMessageHandler {
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         MainActor.assumeIsolated {
-            guard message.frameInfo.isMainFrame else { return }
-            controller?.iconLinkReported(message.body)
+            // Child windows share this user content controller; only the Slot's own page counts.
+            guard message.frameInfo.isMainFrame, let controller, message.webView === controller.webView else { return }
+            controller.iconLinkReported(message.body)
         }
     }
 }
