@@ -110,3 +110,30 @@ extension Settings {
         slots[index].label = "\(title) - \(profile.name)"
     }
 }
+
+extension Settings {
+    /// Appends a Profile named "Profile N" (N = count + 1, bumped past taken names) in the next palette color (SPEC 10.2).
+    mutating func addProfile(id: UUID) {
+        var number = profiles.count + 1
+        while profiles.contains(where: { $0.name == "Profile \(number)" }) { number += 1 }
+        profiles.append(Profile(id: id, name: "Profile \(number)",
+                                color: ProfilePalette.colorForNewProfile(existing: profiles)))
+    }
+
+    /// A blank name is not saved (schema `minLength: 1`, SPEC 3.3).
+    mutating func renameProfile(_ id: UUID, to name: String) {
+        guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              let index = profiles.firstIndex(where: { $0.id == id }) else { return }
+        profiles[index].name = name
+    }
+
+    func slots(inProfile id: UUID) -> [Slot] {
+        slots.filter { $0.profileId == id }
+    }
+
+    /// Removes the Profile and its Slots; the last Profile may go too (SPEC 5, 10.2).
+    mutating func deleteProfile(_ id: UUID) {
+        profiles.removeAll { $0.id == id }
+        slots.removeAll { $0.profileId == id }
+    }
+}

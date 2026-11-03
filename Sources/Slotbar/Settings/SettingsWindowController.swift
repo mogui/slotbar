@@ -9,12 +9,14 @@ final class SettingsWindowController {
     private let store: SettingsStore
     private let hotkey: Hotkey?
     private let openAtLogin: OpenAtLogin
+    private let deleteProfile: (UUID) -> Void
     private var window: NSWindow?
 
-    init(store: SettingsStore, hotkey: Hotkey?, openAtLogin: OpenAtLogin) {
+    init(store: SettingsStore, hotkey: Hotkey?, openAtLogin: OpenAtLogin, deleteProfile: @escaping (UUID) -> Void) {
         self.store = store
         self.hotkey = hotkey
         self.openAtLogin = openAtLogin
+        self.deleteProfile = deleteProfile
     }
 
     func show() {
@@ -29,6 +31,8 @@ final class SettingsWindowController {
         tabs.tabStyle = .toolbar
         addTab(to: tabs, "General", systemImage: "gearshape",
                GeneralView(store: store, hotkey: hotkey, openAtLogin: openAtLogin))
+        addTab(to: tabs, "Profiles", systemImage: "person.2",
+               ProfilesView(store: store, deleteProfile: deleteProfile))
         let window = NSWindow(contentViewController: tabs)
         window.styleMask = [.titled, .closable]
         window.toolbarStyle = .preference
