@@ -6,8 +6,11 @@ private let log = Log.logger("App")
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var panelController: PanelController?
+    private var settingsStore: SettingsStore?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let supportDirectory = URL.applicationSupportDirectory.appendingPathComponent("Slotbar")
+        settingsStore = SettingsStore(directory: supportDirectory)
         NSApp.mainMenu = Menus.mainMenu()
         panelController = PanelController()
 
