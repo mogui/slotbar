@@ -30,6 +30,10 @@ struct GeneralView: View {
             .pickerStyle(.segmented)
             .fixedSize()
             Toggle("Hide when Slotbar loses focus", isOn: binding(\.hideOnFocusLoss))
+            Toggle(isOn: binding(\.showInDock)) {
+                Text("Show in Dock")
+                Text("Switch to Slotbar with Cmd-Tab")
+            }
             Toggle("Open at login", isOn: Binding(
                 get: { store.settings.general.openAtLogin },
                 set: { openAtLogin.set($0) }

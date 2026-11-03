@@ -31,6 +31,19 @@ struct General: Codable, Equatable, Sendable {
     var hideOnFocusLoss: Bool
     var openAtLogin: Bool
     var panelDepth: PanelDepth
+    /// Optional key, absent in files written before it existed (SPEC 3.1).
+    var showInDock = false
+}
+
+extension General {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        panelEdge = try c.decode(PanelEdge.self, forKey: .panelEdge)
+        hideOnFocusLoss = try c.decode(Bool.self, forKey: .hideOnFocusLoss)
+        openAtLogin = try c.decode(Bool.self, forKey: .openAtLogin)
+        panelDepth = try c.decode(PanelDepth.self, forKey: .panelDepth)
+        showInDock = try c.decodeIfPresent(Bool.self, forKey: .showInDock) ?? false
+    }
 }
 
 struct Profile: Codable, Equatable, Identifiable, Sendable {

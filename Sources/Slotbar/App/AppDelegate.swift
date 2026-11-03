@@ -87,6 +87,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for id in faviconCachesToDelete(old: old, new: settings.slots) {
             favicons.remove(id)
         }
+        let policy: NSApplication.ActivationPolicy = settings.general.showInDock ? .regular : .accessory
+        if NSApp.activationPolicy() != policy { NSApp.setActivationPolicy(policy) }
         slotRegistry.apply(settings) { makeSlotController($0, favicons: favicons, panel: panelController) }
         panelController.update(settings: settings, controllers: slotRegistry.controllers)
         refreshBadges()
@@ -170,6 +172,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             panelController?.statusMouseUp()
         }
+    }
+
+    /// With Show in Dock (SPEC 4.6): Cmd-Tab or a Dock click to Slotbar shows the Panel.
+    func applicationDidBecomeActive(_ notification: Notification) {
+        guard settingsStore?.settings.general.showInDock == true else { return }
+        panelController?.show()
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        panelController?.show()
+        return false
     }
 
     @objc func showAbout(_ sender: Any?) {

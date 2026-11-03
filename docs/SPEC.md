@@ -25,7 +25,7 @@ SwiftPM package, one executable target `Slotbar` (`swift-tools-version: 6.0`, `p
 
 | Folder | Contents |
 |---|---|
-| `App/` | Entry point, `AppDelegate` (`NSApplication.ActivationPolicy.accessory` via `LSUIElement`), hidden main menu (section 9), status item and its menu (section 4.6), location guard and Open at login (section 12.5). |
+| `App/` | Entry point, `AppDelegate` (`NSApplication.ActivationPolicy.accessory` via `LSUIElement`, `.regular` with Show in Dock), hidden main menu (section 9), status item and its menu (section 4.6), location guard and Open at login (section 12.5). |
 | `Model/` | `Settings`, `Profile`, `Slot`, `General` structs (`Codable`), `SettingsStore` (JSON I/O, change publishing), first-run preset. |
 | `Panel/` | `PanelWindow` (`NSPanel` subclass), `PanelController` (show/hide, slide, resize, screen and Space handling), `RailView`. |
 | `Slots/` | `SlotController` (one per Slot: webview, lifecycle state machine, grace timer, crash counter, reopen URL, sign-in mode), `ProfileStores` (one `WKWebsiteDataStore` per Profile, deletion queue). |
@@ -70,6 +70,7 @@ Sources: [Settings data model and UI](https://github.com/mogui/slotbar/issues/10
 - `panelEdge`: `left | right | top | bottom`, default `right`.
 - `hideOnFocusLoss`: bool, default `true`.
 - `openAtLogin`: bool, default `false`. This is the user's choice; the actual registration state always comes from `SMAppService.mainApp.status`, and the launch self-heal reads both (section 12.5).
+- `showInDock`: bool, default `false`. Optional key; a file without it reads as `false`.
 - `panelDepth`: `{ horizontal, vertical }` fractions of the screen dimension. `horizontal` is the width for left/right (default `0.45`), `vertical` is the height for top/bottom (default `0.70`).
 
 ### 3.2 Storage
@@ -110,6 +111,7 @@ Rules:
         "panelEdge": { "enum": ["left", "right", "top", "bottom"], "default": "right" },
         "hideOnFocusLoss": { "type": "boolean", "default": true },
         "openAtLogin": { "type": "boolean", "default": false },
+        "showInDock": { "type": "boolean", "default": false },
         "panelDepth": {
           "type": "object",
           "required": ["horizontal", "vertical"],
@@ -238,6 +240,7 @@ Sources: [Panel behaviour](https://github.com/mogui/slotbar/issues/9), [Panel me
 - `NSStatusItem` with the template icon image, plus the unread badge as the button title (section 8.4).
 - Left-click: toggle (section 4.5).
 - Right-click or Ctrl-click menu: a "Hotkey unavailable" line when registration failed, Settings... (`Cmd+,`), About Slotbar, Quit Slotbar.
+- Show in Dock on: activation policy `.regular`, so Slotbar has a Dock icon and is in the Cmd-Tab switcher. Activating the app (Cmd-Tab, Dock click) shows the Panel. Off: `.accessory`. Applied live.
 - About opens the standard About panel (`orderFrontStandardAboutPanel`) with version and build and a credits line linking to `https://github.com/mogui/slotbar/releases`.
 
 ### 4.7 Child windows
@@ -428,7 +431,7 @@ Sources: [Keyboard input in a non-activating Panel](https://github.com/mogui/slo
 
 - In a Child window, `Cmd+W` closes that window. Other keys go to the page.
 - Esc is not bound; pages own it.
-- Hidden main menu (`NSApp.mainMenu`, never visible with `LSUIElement`): an App menu with About Slotbar, Settings... (`Cmd+,`), Quit Slotbar (`Cmd+Q`), and an Edit menu with Undo (`Cmd+Z`), Redo (`Cmd+Shift+Z`), Cut, Copy, Paste, Select All, using the standard first-responder selectors. Without it, `Cmd+A/C/V/Z` do nothing in web fields.
+- Main menu (`NSApp.mainMenu`, visible only with Show in Dock): an App menu with About Slotbar, Settings... (`Cmd+,`), Quit Slotbar (`Cmd+Q`), and an Edit menu with Undo (`Cmd+Z`), Redo (`Cmd+Shift+Z`), Cut, Copy, Paste, Select All, using the standard first-responder selectors. Without it, `Cmd+A/C/V/Z` do nothing in web fields.
 - Global hotkey: KeyboardShortcuts name `togglePanel`, default `Ctrl+Option+S`, recordable in Settings > General. No per-Slot hotkeys. When registration fails, Settings shows an inline warning and the status menu shows "Hotkey unavailable"; the icon click still works.
 
 ## 10. Settings UI
@@ -445,6 +448,7 @@ Sources: [Settings data model and UI](https://github.com/mogui/slotbar/issues/10
 | Global hotkey | `KeyboardShortcuts.Recorder` for `togglePanel`. Inline warning when registration failed. |
 | Panel edge | Segmented control Left / Right / Top / Bottom, default Right. Applies at the next show and keeps the depth. |
 | Hide when Slotbar loses focus | Switch, on. |
+| Show in Dock | Switch, off, with the hint "Switch to Slotbar with Cmd-Tab". Section 4.6. |
 | Open at login | Switch, off. On calls `SMAppService.mainApp.register()`, off calls `unregister()`. If registration fails, an inline error appears and the switch stays off. |
 | Notifications are off in System Settings | Shown only when authorization is denied, with an Open button. |
 
