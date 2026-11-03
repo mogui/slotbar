@@ -12,6 +12,7 @@
   <a href="https://github.com/mogui/slotbar/releases/latest"><img src="https://img.shields.io/github/v/release/mogui/slotbar?sort=semver" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-blue" alt="macOS 14+">
   <img src="https://img.shields.io/badge/Swift-6-orange" alt="Swift 6">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"></a>
 </p>
 
 ---
@@ -159,3 +160,15 @@ git tag v0.2.0 && git push origin v0.2.0
 - Opening a Chat conversation from a notification reloads the Chat Slot.
 - Calls and huddles (Meet, Chat): use the browser.
 - Google may block sign-in inside embedded web views at any time.
+
+## How it was built
+
+Slotbar was built with a "dark factory" process at level 4/5: AI coding agents wrote the first draft almost entirely on their own, starting from the spec in [docs/SPEC.md](docs/SPEC.md).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+[MIT](LICENSE)
