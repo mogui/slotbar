@@ -23,7 +23,7 @@ final class ChildWindowController: NSObject, NSWindowDelegate, WKNavigationDeleg
 
     init(configuration: WKWebViewConfiguration, frame: NSRect, profileName: String) {
         self.profileName = profileName
-        webView = WKWebView(frame: .zero, configuration: configuration)
+        webView = SlotWebView(frame: .zero, configuration: configuration)
         window = ChildWindow(contentRect: frame, styleMask: [.titled, .resizable, .closable, .miniaturizable],
                              backing: .buffered, defer: false)
         super.init()
@@ -87,6 +87,12 @@ final class ChildWindowController: NSObject, NSWindowDelegate, WKNavigationDeleg
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
                  decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
         if action.shouldPerformDownload { return decisionHandler(.download) }
+        if action.targetFrame?.isMainFrame == true, let url = action.request.url,
+           (webView as? SlotWebView)?.takeLinkOverride() == .outside {
+            decisionHandler(.cancel)
+            NSWorkspace.shared.open(url)
+            return
+        }
         let scheme = action.request.url?.scheme?.lowercased() ?? ""
         if action.targetFrame?.isMainFrame == true, let url = action.request.url,
            !["http", "https"].contains(scheme), !NavigationRouter.pageLocalSchemes.contains(scheme) {

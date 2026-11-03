@@ -14,9 +14,10 @@ import Testing
     let personalDrive = slot("https://drive.google.com/", profile: personal)
 
     func route(_ url: String?, opener: String = "https://mail.google.com/mail/u/0/#inbox",
-               inSignInMode: Bool = false, opensOutside: Bool = false) -> PopupRoute {
+               inSignInMode: Bool = false, isLinkClick: Bool = true, inverts: Bool = false) -> PopupRoute {
         popupRoute(url: url.flatMap(URL.init(string:)), openerURL: URL(string: opener), from: mail,
-                   slots: [mail, calendar, personalDrive], inSignInMode: inSignInMode, opensOutside: opensOutside)
+                   slots: [mail, calendar, personalDrive], inSignInMode: inSignInMode,
+                   isLinkClick: isLinkClick, inverts: inverts)
     }
 
     @Test func homeHostTargetOpensChildWindow() {
@@ -52,10 +53,18 @@ import Testing
         #expect(route("about:blank", opener: "https://idp.example.com/", inSignInMode: true) == .childWindow)
     }
 
-    @Test func cmdOrMiddleClickAlwaysGoesToBrowserEvenInSignInMode() {
+    @Test func cmdOrMiddleClickOnHomeHostGoesToBrowserEvenInSignInMode() {
         let home = URL(string: "https://mail.google.com/mail/u/0/#inbox/1")!
-        #expect(route(home.absoluteString, opensOutside: true) == .browser(home))
-        #expect(route(home.absoluteString, inSignInMode: true, opensOutside: true) == .browser(home))
+        #expect(route(home.absoluteString, inverts: true) == .browser(home))
+        #expect(route(home.absoluteString, inSignInMode: true, inverts: true) == .browser(home))
+    }
+
+    @Test func cmdOrMiddleClickOnOtherDomainOpensChildWindow() {
+        #expect(route("https://example.com/doc", inverts: true) == .childWindow)
+    }
+
+    @Test func scriptPopupToOtherDomainOpensChildWindow() {
+        #expect(route("https://login.microsoftonline.com/oauth2", isLinkClick: false) == .childWindow)
     }
 
     @Test func nonWebSchemesGoToTheirHandlerEvenInSignInMode() {

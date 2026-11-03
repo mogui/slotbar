@@ -1,3 +1,4 @@
+import AppKit
 import WebKit
 
 private let log = Log.logger("Web")
@@ -30,7 +31,7 @@ enum WebViewFactory {
             configuration.userContentController.addUserScript(faviconScript)
             configuration.userContentController.add(faviconHandler, name: faviconMessage)
         }
-        let webView = WKWebView(frame: .zero, configuration: configuration)
+        let webView = SlotWebView(frame: .zero, configuration: configuration)
         webView.customUserAgent = userAgent
         webView.uiDelegate = UIDelegate.shared
         #if DEBUG
@@ -39,5 +40,40 @@ enum WebViewFactory {
         webView.isInspectable = false
         #endif
         return webView
+    }
+}
+
+/// Slot and Child window webview: the link context menu offers "Open Link in Slotbar" and "Open Link in Browser" (SPEC 7.1).
+/// Each item runs WebKit's own "Open Link" with a one-shot `LinkOverride` the navigation delegate consumes.
+final class SlotWebView: WKWebView {
+    private var linkOverride: LinkOverride?
+
+    func takeLinkOverride() -> LinkOverride? {
+        defer { linkOverride = nil }
+        return linkOverride
+    }
+
+    override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
+        super.willOpenMenu(menu, with: event)
+        guard let index = menu.items.firstIndex(where: { $0.identifier?.rawValue == "WKMenuItemIdentifierOpenLink" }) else { return }
+        let openLink = menu.items[index]
+        openLink.isHidden = true
+        menu.items.first { $0.identifier?.rawValue == "WKMenuItemIdentifierOpenLinkInNewWindow" }?.isHidden = true
+        for (title, selector) in [("Open Link in Browser", #selector(openLinkOutside(_:))),
+                                  ("Open Link in Slotbar", #selector(openLinkInside(_:)))] {
+            let item = NSMenuItem(title: title, action: selector, keyEquivalent: "")
+            item.target = self
+            item.representedObject = openLink
+            menu.insertItem(item, at: index)
+        }
+    }
+
+    @objc private func openLinkInside(_ sender: NSMenuItem) { openLink(sender, override: .inside) }
+    @objc private func openLinkOutside(_ sender: NSMenuItem) { openLink(sender, override: .outside) }
+
+    private func openLink(_ sender: NSMenuItem, override: LinkOverride) {
+        guard let openLink = sender.representedObject as? NSMenuItem, let action = openLink.action else { return }
+        linkOverride = override
+        NSApp.sendAction(action, to: openLink.target, from: openLink)
     }
 }

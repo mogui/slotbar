@@ -16,15 +16,16 @@ enum PopupRoute: Equatable {
 
 /// Routes the popup target by the link rules (SPEC 7.1) from the Slot that owns the opener.
 func popupRoute(url: URL?, openerURL: URL?, from source: Slot, slots: [Slot],
-                inSignInMode: Bool, opensOutside: Bool) -> PopupRoute {
+                inSignInMode: Bool, isLinkClick: Bool = true, inverts: Bool) -> PopupRoute {
     guard let url, !url.absoluteString.isEmpty, url.absoluteString != "about:blank" else {
         let openerOnHomeHost = openerURL?.host()?.lowercased() == source.homeHost
         return openerOnHomeHost || inSignInMode ? .childWindow : .discard
     }
-    let request = NavigationRequest(url: url, isMainFrame: true, isExempt: false, opensOutside: opensOutside)
+    let request = NavigationRequest(url: url, isMainFrame: true, isExempt: false, inverts: inverts,
+                                    sourceURL: openerURL, isLinkClick: isLinkClick)
     // Sign-in mode keeps web popups in the app; Cmd/middle-click and other schemes still leave it.
     let scheme = url.scheme?.lowercased() ?? ""
-    let staysInSignIn = !opensOutside && (["http", "https"].contains(scheme) || NavigationRouter.pageLocalSchemes.contains(scheme))
+    let staysInSignIn = !inverts && (["http", "https"].contains(scheme) || NavigationRouter.pageLocalSchemes.contains(scheme))
     switch NavigationRouter.route(request, from: source, slots: slots, inSignInMode: inSignInMode && staysInSignIn) {
     case .browser(let target): return .browser(target)
     case .slot(let id, let target) where id != source.id: return .slot(id, target)

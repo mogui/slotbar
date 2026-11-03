@@ -310,19 +310,22 @@ Sources: [Link routing rules](https://github.com/mogui/slotbar/issues/11), [Goog
 
 Decided once per navigation, in `decidePolicyFor navigationAction`, on its first request. The initial load of the starting URL, the reopen URL and a routed URL are never routed.
 
+Only clicked links (`navigationType == .linkActivated`) are routed. Form submissions and script navigations stay in the Slot. **Same domain** means the target's registrable domain (last two labels, three under `co.`/`com.`/`org.`/`net.`/`ac.`/`gov.`/`edu.` plus a two-letter TLD) equals that of the Home host or of the current page.
+
 | Case | Route |
 |---|---|
 | Host equals the Home host | Stay in the Slot. |
-| Another host | The first Slot in list order of the same Profile whose Home host equals the target host: show it and load the URL there (section 6.2). Otherwise the default browser (`NSWorkspace.shared.open`). Never a Slot of another Profile. |
+| Host equals the Home host of another Slot of the same Profile (first in list order) | Show that Slot and load the URL there (section 6.2). Never a Slot of another Profile. |
+| Same domain | Stay in the Slot. |
+| Another domain | Default browser (`NSWorkspace.shared.open`). |
+| Cmd-click or middle-click (`modifierFlags.contains(.command)` or `buttonNumber == 4`) | The opposite of the default: a link that would stay (or go to another Slot) opens in the default browser; a link that would go to the browser loads in the Slot. |
+| Link context menu | **Open Link in Slotbar** loads the link in the Slot (or Child window); **Open Link in Browser** opens it in the default browser. Always offered, also in Sign-in mode. |
+| Form submissions, script navigations | Stay in the Slot. |
 | Server redirects (3xx) | Never routed. |
 | Sub-frames (iframes) | Never routed; load in place. |
 | `accounts.google.<any TLD>`, `accounts.youtube.com` | Enter **Sign-in mode** (section 7.2). |
 | `google.<any TLD>/url?q=` or `?url=` wrappers | Unwrap and route the real target. If it is missing or not absolute `http`/`https`, open the wrapper as is in the default browser. |
-| `meet.google.com` | Default browser, unless a same-Profile Slot has it as Home host. |
 | Non-`http(s)` schemes (`mailto:`, `tel:`, `zoommtg:` ...) | `NSWorkspace.shared.open` (macOS default handler). `about:`, `blob:`, `data:` and `javascript:` from the page itself load in place. |
-| Cmd-click or middle-click (`modifierFlags.contains(.command)` or `buttonNumber == 4`) | Always the default browser, even on the Home host. |
-| In-page previews (same-host overlays) | Stay (they are Home-host navigations or no navigation). |
-| Drive, Docs, Sheets, Slides, full-page previewers | Normal rule. |
 
 The Google host lists are hardcoded. There are no routing settings.
 
@@ -335,7 +338,7 @@ The Google host lists are hardcoded. There are no routing settings.
 ### 7.3 Popups
 
 - `window.open` and `target=_blank` (`createWebViewWith`): the target is routed by the rules above.
-- It stays when the target is on the Home host, when the URL is `about:blank` or empty and the opener is on the Home host, or when the Slot is in Sign-in mode. It opens as a **Child window** (section 4.7).
+- It stays when the route is "stay in the Slot" (same domain as the Home host or the opener page, Cmd-click on another domain, or a `window.open` from script), when the URL is `about:blank` or empty and the opener is on the Home host, or when the Slot is in Sign-in mode. It opens as a **Child window** (section 4.7).
 - Otherwise it opens in the default browser and `nil` is returned (no window).
 - Popups without a user gesture follow the WebKit default (blocked).
 

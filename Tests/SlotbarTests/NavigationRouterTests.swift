@@ -14,9 +14,11 @@ import Testing
     let personalDrive = slot("https://drive.google.com/", profile: personal)
 
     func route(_ url: String, from source: Slot? = nil, isMainFrame: Bool = true, isExempt: Bool = false,
-               opensOutside: Bool = false, inSignInMode: Bool = false) -> Route {
+               inverts: Bool = false, sourceURL: String? = nil, isLinkClick: Bool = true,
+               override: LinkOverride? = nil, inSignInMode: Bool = false) -> Route {
         NavigationRouter.route(
-            NavigationRequest(url: URL(string: url)!, isMainFrame: isMainFrame, isExempt: isExempt, opensOutside: opensOutside),
+            NavigationRequest(url: URL(string: url)!, isMainFrame: isMainFrame, isExempt: isExempt, inverts: inverts,
+                              sourceURL: sourceURL.flatMap(URL.init(string:)), isLinkClick: isLinkClick, override: override),
             from: source ?? mail, slots: [mail, calendar, personalDrive], inSignInMode: inSignInMode)
     }
 
@@ -34,7 +36,8 @@ import Testing
     }
 
     @Test func neverRoutesToSlotOfAnotherProfile() {
-        #expect(route("https://drive.google.com/file/d/1") == .browser(URL(string: "https://drive.google.com/file/d/1")!))
+        let trello = Self.slot("https://trello.com/")
+        #expect(route("https://drive.google.com/file/d/1", from: trello) == .browser(URL(string: "https://drive.google.com/file/d/1")!))
     }
 
     @Test func subFramesLoadInPlace() {
@@ -45,9 +48,43 @@ import Testing
         #expect(route("https://example.com/landing", isExempt: true) == .stay)
     }
 
-    @Test func cmdOrMiddleClickAlwaysGoesToDefaultBrowserEvenOnHomeHost() {
-        #expect(route("https://mail.google.com/mail/u/0/#inbox/1", opensOutside: true) ==
+    @Test func cmdOrMiddleClickOnHomeHostGoesToDefaultBrowser() {
+        #expect(route("https://mail.google.com/mail/u/0/#inbox/1", inverts: true) ==
                 .browser(URL(string: "https://mail.google.com/mail/u/0/#inbox/1")!))
+    }
+
+    @Test func cmdOrMiddleClickOnOtherDomainStaysInSlot() {
+        #expect(route("https://example.com/a", inverts: true) == .stay)
+    }
+
+    @Test func sameDomainAsHomeStaysInSlot() {
+        let trello = Self.slot("https://trello.com/")
+        #expect(route("https://www.trello.com/b/1", from: trello) == .stay)
+        #expect(route("https://www.trello.com/b/1", from: trello, inverts: true) ==
+                .browser(URL(string: "https://www.trello.com/b/1")!))
+    }
+
+    @Test func sameDomainAsCurrentPageStaysInSlot() {
+        let trello = Self.slot("https://trello.com/")
+        #expect(route("https://id.atlassian.com/login/mfa", from: trello, sourceURL: "https://id.atlassian.com/login") == .stay)
+    }
+
+    @Test(arguments: ["https://id.atlassian.com/login", "https://example.com/a"])
+    func formSubmissionsAndScriptNavigationsStay(url: String) {
+        #expect(route(url, isLinkClick: false) == .stay)
+    }
+
+    @Test func contextMenuOverrideWins() {
+        #expect(route("https://example.com/a", override: .inside) == .stay)
+        #expect(route("https://mail.google.com/mail/u/0/", override: .outside) ==
+                .browser(URL(string: "https://mail.google.com/mail/u/0/")!))
+        #expect(route("https://mail.google.com/mail/u/0/", override: .outside, inSignInMode: true) ==
+                .browser(URL(string: "https://mail.google.com/mail/u/0/")!))
+    }
+
+    @Test(arguments: [("a.b.example.com", "example.com"), ("x.bbc.co.uk", "bbc.co.uk"), ("trello.com", "trello.com")])
+    func siteDomain(host: String, domain: String) {
+        #expect(NavigationRouter.siteDomain(host) == domain)
     }
 
     @Test(arguments: ["mailto:a@example.com", "tel:+391234", "zoommtg://zoom.us/join?confno=1"])
@@ -81,14 +118,15 @@ import Testing
         #expect(route(url) == .browser(URL(string: url)!))
     }
 
-    @Test func meetGoesToDefaultBrowser() {
-        #expect(route("https://meet.google.com/abc-defg-hij") == .browser(URL(string: "https://meet.google.com/abc-defg-hij")!))
+    @Test func meetFromAnotherDomainGoesToDefaultBrowser() {
+        let trello = Self.slot("https://trello.com/")
+        #expect(route("https://meet.google.com/abc-defg-hij", from: trello) == .browser(URL(string: "https://meet.google.com/abc-defg-hij")!))
     }
 
     @Test func meetStaysInSameProfileSlotWithMeetHomeHost() {
         let meet = Self.slot("https://meet.google.com/")
         let route = NavigationRouter.route(
-            NavigationRequest(url: URL(string: "https://meet.google.com/abc")!, isMainFrame: true, isExempt: false, opensOutside: false),
+            NavigationRequest(url: URL(string: "https://meet.google.com/abc")!, isMainFrame: true, isExempt: false),
             from: mail, slots: [mail, meet], inSignInMode: false)
         #expect(route == .slot(meet.id, URL(string: "https://meet.google.com/abc")!))
     }

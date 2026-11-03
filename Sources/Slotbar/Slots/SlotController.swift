@@ -208,7 +208,8 @@ final class SlotController: NSObject, WKNavigationDelegate {
                    action: WKNavigationAction, features: WKWindowFeatures) -> WKWebView? {
         let route = popupRoute(url: action.request.url, openerURL: opener.url, from: slot, slots: slots,
                                inSignInMode: isInSignInMode,
-                               opensOutside: action.opensOutside)
+                               isLinkClick: action.navigationType == .linkActivated,
+                               inverts: action.inverts)
         #if DEBUG
         log.debug("Popup \(action.request.url?.absoluteString ?? "", privacy: .public) from Slot \(self.slot.id, privacy: .public): \(String(describing: route), privacy: .public)")
         #endif
@@ -279,8 +280,10 @@ final class SlotController: NSObject, WKNavigationDelegate {
             isExempt = nextLoadIsOwn || isRedirect || action.navigationType == .backForward || action.navigationType == .reload
             nextLoadIsOwn = false
         }
-        let request = NavigationRequest(url: url, isMainFrame: frame.isMainFrame, isExempt: isExempt,
-                                        opensOutside: action.opensOutside)
+        let override = frame.isMainFrame ? (webView as? SlotWebView)?.takeLinkOverride() : nil
+        let request = NavigationRequest(url: url, isMainFrame: frame.isMainFrame, isExempt: isExempt && override == nil,
+                                        inverts: action.inverts, sourceURL: webView.url,
+                                        isLinkClick: action.navigationType == .linkActivated, override: override)
         let route = NavigationRouter.route(request, from: slot, slots: slots, inSignInMode: isInSignInMode)
         #if DEBUG
         if frame.isMainFrame {
@@ -376,6 +379,6 @@ private final class WeakScriptHandler: NSObject, WKScriptMessageHandler {
 }
 
 extension WKNavigationAction {
-    /// Cmd-click or middle-click (SPEC 7.1). WebKit reports a button mask: left 1, right 2, middle 4.
-    var opensOutside: Bool { modifierFlags.contains(.command) || buttonNumber == 4 }
+    /// Cmd-click or middle-click: the opposite of the default route (SPEC 7.1). WebKit reports a button mask: left 1, right 2, middle 4.
+    var inverts: Bool { modifierFlags.contains(.command) || buttonNumber == 4 }
 }

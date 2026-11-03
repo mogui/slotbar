@@ -12,14 +12,26 @@ enum Route: Equatable {
     case signIn
 }
 
+/// Where the link context menu sends the next main-frame navigation (SPEC 7.1).
+enum LinkOverride: Equatable {
+    case inside
+    case outside
+}
+
 /// One navigation's first request, as seen by `decidePolicyFor navigationAction`.
 struct NavigationRequest {
     var url: URL
     var isMainFrame: Bool
     /// Server redirect, or the Slot's own load of its starting, reopen or routed URL: never routed.
     var isExempt: Bool
-    /// Cmd-click or middle-click.
-    var opensOutside: Bool
+    /// Cmd-click or middle-click: the opposite of the default route.
+    var inverts: Bool = false
+    /// The page the navigation starts from.
+    var sourceURL: URL? = nil
+    /// A clicked link. Form submissions and script navigations stay in place.
+    var isLinkClick: Bool = true
+    /// Chosen from the link context menu.
+    var override: LinkOverride? = nil
 }
 
 enum NavigationRouter {
@@ -28,7 +40,7 @@ enum NavigationRouter {
     static func route(_ request: NavigationRequest, from source: Slot, slots: [Slot], inSignInMode: Bool) -> Route {
         guard request.isMainFrame else { return .stay }
         if request.isExempt { return isSignInHost(request.url) ? .signIn : .stay }
-        if inSignInMode { return .stay }
+        if inSignInMode && request.override == nil { return .stay }
         let scheme = request.url.scheme?.lowercased() ?? ""
         if pageLocalSchemes.contains(scheme) { return .stay }
         if scheme != "http" && scheme != "https" { return .browser(request.url) }
@@ -38,15 +50,29 @@ enum NavigationRouter {
             guard let unwrapped = wrappedTarget(request.url) else { return .browser(request.url) }
             target = unwrapped
         }
-        if request.opensOutside { return .browser(target) }
-        if isSignInHost(target) { return .signIn }
+        let inPlace: Route = target == request.url ? .stay : .slot(source.id, target)
+        if let override = request.override { return override == .inside ? inPlace : .browser(target) }
+        if isSignInHost(target) && !request.inverts { return .signIn }
+        if !request.isLinkClick { return .stay }
 
         let host = target.host()?.lowercased()
-        if host == source.homeHost { return target == request.url ? .stay : .slot(source.id, target) }
-        if let slot = slots.first(where: { $0.profileId == source.profileId && $0.homeHost == host }) {
-            return .slot(slot.id, target)
-        }
-        return .browser(target)
+        let sameSlot = host == source.homeHost
+        let otherSlot = sameSlot ? nil : slots.first(where: { $0.profileId == source.profileId && $0.homeHost == host })
+        let sameDomain = host.map { host in
+            [source.homeHost, request.sourceURL?.host()?.lowercased()].contains { $0.map(siteDomain) == siteDomain(host) }
+        } ?? false
+        if request.inverts { return sameSlot || otherSlot != nil || sameDomain ? .browser(target) : inPlace }
+        if let otherSlot { return .slot(otherSlot.id, target) }
+        return sameSlot || sameDomain ? inPlace : .browser(target)
+    }
+
+    /// The registrable domain, approximated: the last two labels, three under `co.`/`com.`/`org.`/`net.`/`ac.`/`gov.`/`edu.` plus a two-letter TLD (`co.uk`).
+    static func siteDomain(_ host: String) -> String {
+        let labels = host.split(separator: ".")
+        guard labels.count > 2 else { return host }
+        let secondLevel = ["co", "com", "org", "net", "ac", "gov", "edu"]
+        let count = labels.last!.count == 2 && secondLevel.contains(String(labels[labels.count - 2])) ? 3 : 2
+        return labels.suffix(count).joined(separator: ".")
     }
 
     /// `accounts.google.<TLD>` or `accounts.youtube.com`.
