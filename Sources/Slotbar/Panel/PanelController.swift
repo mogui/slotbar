@@ -62,6 +62,17 @@ final class PanelController: NSObject {
         } else {
             refreshRail()
         }
+        updateShown()
+    }
+
+    /// Tells each Slot whether it is the one on screen (SPEC 6.1), which drives its grace timer.
+    private func updateShown() {
+        controllers.forEach { $0.setShown($0.slot.id == visibleSlot) }
+    }
+
+    /// A Slot entered or left the crash placeholder: swap its view if it is on screen.
+    func slotContentChanged(_ id: UUID) {
+        if visibleSlot == id { activate(id) }
     }
 
     /// True when the Panel or one of its Child windows is key.
@@ -137,6 +148,7 @@ final class PanelController: NSObject {
             edge = settingsStore.settings.general.panelEdge
         }
         isShowing = true
+        updateShown()
         guard let screen else { return }
         let visible = screen.visibleFrame
         let shown = panelFrame(visibleFrame: visible, edge: edge, depthFraction: storedFraction)
@@ -179,6 +191,7 @@ final class PanelController: NSObject {
     func hide() {
         guard isShowing, let screen else { return }
         isShowing = false
+        updateShown()
         let visible = screen.visibleFrame
         animationID += 1
         let id = animationID
@@ -264,7 +277,7 @@ final class PanelController: NSObject {
         slotArea.subviews.forEach { $0.removeFromSuperview() }
         let view: NSView
         if let id, let controller = controllers.first(where: { $0.slot.id == id }) {
-            view = controller.load()
+            view = controller.contentView()
         } else {
             view = emptyState
         }
@@ -272,6 +285,7 @@ final class PanelController: NSObject {
         view.autoresizingMask = [.width, .height]
         slotArea.addSubview(view)
         if view !== emptyState { window.makeFirstResponder(view) }
+        updateShown()
         refreshRail()
     }
 

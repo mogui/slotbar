@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// One per Slot, in list order.
     private var slotControllers: [SlotController] = []
     private var settingsWindow: SettingsWindowController?
+    private var memoryPressure: DispatchSourceMemoryPressure?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Failed store removals are retried before any webview exists (SPEC 3.4).
@@ -56,6 +57,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         notificationBridge.requestAuthorizationIfNeeded()
         apply(store.settings)
         store.observe { [weak self] settings in self?.apply(settings) }
+        watchMemoryPressure()
         let launchIds = slotsLoadedAtLaunch(store.settings.slots)
         for controller in slotControllers where launchIds.contains(controller.slot.id) {
             controller.load()
@@ -110,6 +112,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.panelController?.childWindowFrame(width: width, height: height) ?? NSRect(x: 0, y: 0, width: 800, height: 700)
             }
             controller.onChildWindowClosed = { [weak self] in self?.panelController?.childWindowClosed() }
+            controller.onContentChange = { [weak self] in self?.panelController?.slotContentChanged(slot.id) }
             return controller
         }
         for controller in slotControllers {
@@ -118,6 +121,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         panelController?.update(settings: settings, controllers: slotControllers)
         refreshBadges()
+    }
+
+    /// On a warning or critical event, Slots in their grace period unload at once (SPEC 6.2).
+    private func watchMemoryPressure() {
+        let source = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: .main)
+        source.setEventHandler { [weak self] in
+            MainActor.assumeIsolated {
+                log.info("Memory pressure")
+                self?.slotControllers.forEach { $0.memoryPressure() }
+            }
+        }
+        source.resume()
+        memoryPressure = source
     }
 
     /// Status item title = aggregated badge in monospaced digits; the Rail shows each Slot's own (SPEC 8.4).

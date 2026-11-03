@@ -3,11 +3,16 @@ import WebKit
 
 private let log = Log.logger("Slots")
 
-/// Owns one Slot's webview, created on first load (SPEC 6.2), routes its navigations (SPEC 7)
-/// and keeps its favicon and auto-label up to date (SPEC 3.1, 4.4).
+/// Owns one Slot's webview, created on first load and released by the lifecycle (SPEC 6), routes its
+/// navigations (SPEC 7) and keeps its favicon and auto-label up to date (SPEC 3.1, 4.4).
 @MainActor
 final class SlotController: NSObject, WKNavigationDelegate {
-    var slot: Slot
+    var slot: Slot {
+        didSet {
+            guard slot.keepAlive != oldValue.keepAlive else { return }
+            if lifecycle.setKeepAlive(slot.keepAlive, at: Date()) { load() }
+        }
+    }
     /// All Slots in list order, for routing to a same-Profile Slot.
     var slots: [Slot] = []
     /// Show the Slot with this id and load the URL there.
@@ -22,6 +27,17 @@ final class SlotController: NSObject, WKNavigationDelegate {
     var onUnreadChange: (() -> Void)?
     private var unreadMonitor: UnreadMonitor?
     private var signInMode = SignInMode()
+    private var lifecycle: SlotLifecycle {
+        didSet { scheduleGraceTimer() }
+    }
+    private var graceTimer: Timer?
+    /// Last main-frame URL seen, kept after unload until quit.
+    private var lastURL: URL?
+    /// Unread state when the crash placeholder replaced the webview.
+    private var lastUnread: UnreadState = .none
+    private lazy var crashPlaceholder = makeCrashPlaceholder()
+    /// The view the Panel shows for this Slot changed by itself (crash placeholder entered or left).
+    var onContentChange: (() -> Void)?
     /// The next main-frame request is the Slot's own load (starting, reopen or routed URL).
     private var nextLoadIsOwn = false
     /// A main-frame navigation has started and not committed or failed yet.
@@ -50,16 +66,29 @@ final class SlotController: NSObject, WKNavigationDelegate {
         self.stores = stores
         self.notifications = notifications
         self.favicons = favicons
+        lifecycle = SlotLifecycle(keepAlive: slot.keepAlive)
     }
 
-    /// Loads the Slot at its starting URL if it has no webview yet.
+    var reopenURL: URL { Slotbar.reopenURL(lastURL: webView?.url ?? lastURL, slot: slot) }
+
+    /// The Panel shows the Slot (SPEC 6.1); a hidden non-keep-alive Slot runs the grace timer.
+    func setShown(_ shown: Bool) {
+        if lifecycle.isShown != shown { lifecycle.setShown(shown, at: Date()) }
+    }
+
+    /// What the Panel shows: the crash placeholder, else the webview (loading the Slot if Unloaded).
+    func contentView() -> NSView {
+        lifecycle.state == .crashPlaceholder ? crashPlaceholder : load()
+    }
+
+    /// Loads the Slot at its reopen URL if it has no webview yet.
     @discardableResult
     func load() -> WKWebView {
         if let webView { return webView }
-        return load(at: slot.url)
+        return load(at: reopenURL)
     }
 
-    /// Loads `url` (never routed): creates the webview when Unloaded, else navigates in place.
+    /// Loads `url` (never routed): creates the webview when Unloaded or in the crash placeholder, else navigates in place.
     @discardableResult
     func load(at url: URL) -> WKWebView {
         let webView = self.webView ?? {
@@ -73,6 +102,9 @@ final class SlotController: NSObject, WKNavigationDelegate {
             unreadMonitor = monitor
             self.webView = webView
             log.debug("Loading Slot \(self.slot.id, privacy: .public)")
+            let leavesPlaceholder = lifecycle.state == .crashPlaceholder
+            lifecycle.loaded(at: Date())
+            if leavesPlaceholder { onContentChange?() }
             return webView
         }()
         nextLoadIsOwn = true
@@ -80,10 +112,45 @@ final class SlotController: NSObject, WKNavigationDelegate {
         return webView
     }
 
-    /// Destroys the webview and Child windows of a deleted Slot so its Profile's data store is no longer attached (SPEC 3.4, 5).
+    /// Destroys the webview and Child windows (Slot deleted or unloaded) so its page process ends and its
+    /// Profile's data store is no longer attached (SPEC 3.4, 5, 6.3). Favicon and reopen URL are kept.
     func close() {
+        releaseWebView()
+        lifecycle.unloaded()
+    }
+
+    /// Memory pressure (SPEC 6.2): unloads the Slot when it is in its grace period.
+    func memoryPressure() {
+        guard lifecycle.memoryPressure() else { return }
+        log.info("Memory pressure: unloading Slot \(self.slot.id, privacy: .public)")
+        unload()
+    }
+
+    private func unload() {
+        close()
+        onUnreadChange?()
+    }
+
+    private func scheduleGraceTimer() {
+        guard graceTimer?.fireDate != lifecycle.graceDeadline else { return }
+        graceTimer?.invalidate()
+        graceTimer = nil
+        guard let deadline = lifecycle.graceDeadline else { return }
+        let timer = Timer(fire: deadline, interval: 0, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.lifecycle.expireGrace(at: Date()) else { return }
+                log.debug("Grace period over: unloading Slot \(self.slot.id, privacy: .public)")
+                self.unload()
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        graceTimer = timer
+    }
+
+    private func releaseWebView() {
         closeChildWindows()
         guard let webView else { return }
+        lastURL = webView.url ?? lastURL
         webView.stopLoading()
         webView.removeFromSuperview()
         webView.configuration.userContentController.removeAllScriptMessageHandlers()
@@ -100,7 +167,13 @@ final class SlotController: NSObject, WKNavigationDelegate {
         case .openInBrowser:
             NSWorkspace.shared.open(webView?.url ?? slot.url)
         case .reload:
-            if let webView { webView.reload() } else { load() }
+            if lifecycle.state == .crashPlaceholder {
+                load(at: reopenURL)
+            } else if let webView {
+                webView.reload()
+            } else {
+                load()
+            }
         case .toggleNotifications:
             break
         }
@@ -128,10 +201,13 @@ final class SlotController: NSObject, WKNavigationDelegate {
             let frame = childWindowPlacement?(width, height) ?? NSRect(x: 0, y: 0, width: 800, height: 700)
             let child = ChildWindowController(configuration: configuration, frame: frame, profileName: profileName)
             child.onClose = { [weak self] child in
-                self?.childWindows.removeAll { $0 === child }
-                self?.onChildWindowClosed?()
+                guard let self else { return }
+                self.childWindows.removeAll { $0 === child }
+                self.lifecycle.setChildWindowCount(self.childWindows.count, at: Date())
+                self.onChildWindowClosed?()
             }
             childWindows.append(child)
+            lifecycle.setChildWindowCount(childWindows.count, at: Date())
             child.show()
             return child.webView
         case .slot(let id, let target):
@@ -154,9 +230,33 @@ final class SlotController: NSObject, WKNavigationDelegate {
         childWindows.forEach { $0.close() }
     }
 
-    /// The Slot's Unread state while loaded; nil when Unloaded (contributes nothing).
+    /// The Slot's Unread state while loaded; nil when Unloaded (contributes nothing); "count unknown"
+    /// in the crash placeholder when something was unread (SPEC 6.4).
     var unread: UnreadState? {
-        webView == nil ? nil : unreadMonitor?.state
+        if lifecycle.state == .crashPlaceholder { return crashPlaceholderUnread(last: lastUnread) }
+        return webView == nil ? nil : unreadMonitor?.state
+    }
+
+    /// Native view replacing the webview after the crash cap (SPEC 6.4).
+    private func makeCrashPlaceholder() -> NSView {
+        let label = NSTextField(labelWithString: "This Slot stopped after repeated crashes.")
+        label.textColor = .secondaryLabelColor
+        let button = NSButton(title: "Reload", target: self, action: #selector(reloadFromPlaceholder(_:)))
+        let stack = NSStackView(views: [label, button])
+        stack.orientation = .vertical
+        stack.spacing = 12
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        let view = NSView()
+        view.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+        ])
+        return view
+    }
+
+    @objc private func reloadFromPlaceholder(_ sender: Any?) {
+        load(at: reopenURL)
     }
 
     fileprivate func iconLinkReported(_ body: Any) {
@@ -258,6 +358,26 @@ final class SlotController: NSObject, WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         mainFrameProvisional = false
+    }
+
+    /// Page crash (SPEC 6.4); Child window crashes go to their own controller and never count here.
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        guard webView === self.webView else { return }
+        let state = unreadMonitor?.state ?? .none
+        let response = lifecycle.crashed(at: Date())
+        log.error("Slot \(self.slot.id, privacy: .public) page crashed: \(String(describing: response), privacy: .public)")
+        switch response {
+        case .reload:
+            closeChildWindows()
+            load(at: reopenURL)
+        case .unload:
+            unload()
+        case .placeholder:
+            lastUnread = state
+            releaseWebView()
+            onUnreadChange?()
+            onContentChange?()
+        }
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
