@@ -189,8 +189,6 @@ final class SlotController: NSObject, WKNavigationDelegate {
             } else {
                 load()
             }
-        case .toggleNotifications:
-            break
         }
     }
 

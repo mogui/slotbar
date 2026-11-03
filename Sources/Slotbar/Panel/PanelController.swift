@@ -43,6 +43,7 @@ final class PanelController: NSObject {
         window.contentView = content
         rail.onSelect = { [weak self] id in self?.activate(id) }
         rail.onAction = { [weak self] id, action in self?.onSlotAction?(id, action) }
+        rail.onToggleNotifications = { [weak self] id in self?.settingsStore.update { $0.toggleNotifications(slot: id) } }
         window.onShortcut = { [weak self] shortcut in self?.handle(shortcut) }
         resizeHandle.onDrag = { [weak self] pointer, ended in self?.resizeDragged(to: pointer, ended: ended) }
 

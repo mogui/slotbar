@@ -3,5 +3,4 @@ enum SlotAction: Sendable {
     case goHome
     case openInBrowser
     case reload
-    case toggleNotifications
 }

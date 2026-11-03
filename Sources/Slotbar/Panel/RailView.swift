@@ -7,6 +7,8 @@ final class RailView: NSView {
 
     var onSelect: ((UUID) -> Void)?
     var onAction: ((UUID, SlotAction) -> Void)?
+    /// The right-click "Notifications" check item (a Settings edit, SPEC 4.4).
+    var onToggleNotifications: ((UUID) -> Void)?
     private let stack = NSStackView()
     private var items: [RailItem] = []
     private lazy var verticalConstraints = [
@@ -144,10 +146,15 @@ final class RailView: NSView {
     @objc func goHome(_ sender: NSMenuItem) { send(.goHome, sender) }
     @objc func openInBrowser(_ sender: NSMenuItem) { send(.openInBrowser, sender) }
     @objc func reload(_ sender: NSMenuItem) { send(.reload, sender) }
-    @objc func toggleNotifications(_ sender: NSMenuItem) { send(.toggleNotifications, sender) }
+    @objc func toggleNotifications(_ sender: NSMenuItem) {
+        if let id = slotId(of: sender) { onToggleNotifications?(id) }
+    }
 
     private func send(_ action: SlotAction, _ sender: NSMenuItem) {
-        guard items.indices.contains(sender.tag) else { return }
-        onAction?(items[sender.tag].slotId, action)
+        if let id = slotId(of: sender) { onAction?(id, action) }
+    }
+
+    private func slotId(of sender: NSMenuItem) -> UUID? {
+        items.indices.contains(sender.tag) ? items[sender.tag].slotId : nil
     }
 }

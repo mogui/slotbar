@@ -166,11 +166,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func perform(_ action: SlotAction, on id: UUID) {
-        if action == .toggleNotifications {
-            settingsStore?.update { $0.toggleNotifications(slot: id) }
-        } else {
-            slotControllers.first { $0.slot.id == id }?.perform(action)
-        }
+        slotControllers.first { $0.slot.id == id }?.perform(action)
     }
 
     @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
