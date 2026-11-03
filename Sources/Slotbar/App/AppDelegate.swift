@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var panelController: PanelController?
     private var settingsStore: SettingsStore?
+    private var hotkey: Hotkey?
     private let profileStores = ProfileStores()
     private let notificationBridge = NotificationBridge()
     /// One per Slot, in list order.
@@ -18,8 +19,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let store = SettingsStore(directory: supportDirectory)
         settingsStore = store
         NSApp.mainMenu = Menus.mainMenu()
-        let panel = PanelController()
+        let panel = PanelController(settingsStore: store)
         panelController = panel
+        hotkey = Hotkey { panel.toggle() }
         notificationBridge.slotForWebView = { [weak self] webView in
             self?.slotControllers.first { $0.webView === webView }?.slot
         }
@@ -46,7 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             button.target = self
             button.action = #selector(statusItemClicked(_:))
-            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+            button.sendAction(on: [.leftMouseDown, .leftMouseUp, .rightMouseUp])
         }
         statusItem = item
         log.info("Launched")
@@ -69,11 +71,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
         guard let event = NSApp.currentEvent else { return }
         if event.type == .rightMouseUp || event.modifierFlags.contains(.control) {
-            statusItem?.menu = Menus.statusMenu()
+            guard event.type != .leftMouseDown else { return }
+            statusItem?.menu = Menus.statusMenu(hotkeyUnavailable: hotkey?.isUnavailable ?? false)
             sender.performClick(nil)
             statusItem?.menu = nil
+        } else if event.type == .leftMouseDown {
+            panelController?.statusMouseDown()
         } else {
-            panelController?.toggle()
+            panelController?.statusMouseUp()
         }
     }
 
