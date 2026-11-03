@@ -9,7 +9,7 @@ private let log = Log.logger("Slots")
 final class SlotController: NSObject, WKNavigationDelegate {
     var slot: Slot {
         didSet {
-            if slot.url != oldValue.url || slot.profileId != oldValue.profileId { startChanged() }
+            if !slot.hasSameStart(as: oldValue) { startChanged() }
             guard slot.keepAlive != oldValue.keepAlive else { return }
             if lifecycle.setKeepAlive(slot.keepAlive, at: Date()) { load() }
         }
@@ -290,7 +290,7 @@ final class SlotController: NSObject, WKNavigationDelegate {
         Task { [weak self] in
             guard let data = await Self.fetch(iconURL, store: store) else { return }
             // Dropped if the Slot was deleted or moved to another URL or Profile meanwhile.
-            guard let self, self.slot.url == slot.url, self.slot.profileId == slot.profileId else { return }
+            guard let self, self.slot.hasSameStart(as: slot) else { return }
             self.favicons.store(imageData: data, for: slot.id)
             if self.favicons.hasIcon(for: slot.id) { self.onFaviconChange?(slot.id) }
         }

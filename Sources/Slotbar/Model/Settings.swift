@@ -70,6 +70,11 @@ struct Slot: Codable, Equatable, Identifiable, Sendable {
     /// The starting URL's host, lowercased (SPEC 7.1).
     var homeHost: String? { url.host()?.lowercased() }
 
+    /// Same starting URL and Profile: the Slot loads the same thing.
+    func hasSameStart(as other: Slot) -> Bool {
+        url == other.url && profileId == other.profileId
+    }
+
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id)
