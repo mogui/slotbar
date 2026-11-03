@@ -492,11 +492,11 @@ Sources: [Build and release pipeline](https://github.com/mogui/slotbar/issues/16
 
 - `Package.swift`: `swift-tools-version: 6.0`, Swift 6 language mode, `platforms: [.macOS(.v14)]`, one executable target `Slotbar`, the test target `SlotbarTests` (section 2), KeyboardShortcuts as the only dependency. CI runs no tests.
 - Toolchain: CI pins Xcode 26.3 via `DEVELOPER_DIR` (the newest on the `macos-15-intel` image; its default Xcode 16.4 fails on the Swift 6 concurrency checks).
-- Architectures: universal arm64 + x86_64: one `swift build -c release --arch <arch>` per arch, joined with `lipo -create` (a multi-arch `swift build` switches to the Xcode build system, which fails with Swift 6 on the CI runner image). x86_64 is dropped the first time the runner's Xcode refuses it. Intel is best effort.
+- Architectures: universal arm64 + x86_64: one `swift build --build-system swiftbuild -c release --arch <arch>` per arch, joined with `lipo -create` (a multi-arch `swift build` switches to the Xcode build system, which fails with Swift 6 on the CI runner image). x86_64 is dropped the first time the runner's Xcode refuses it. Intel is best effort.
 
 ### 12.2 `scripts/build-app.sh [debug|release]`
 
-1. `swift build` in the given configuration (for release, once per arch, then `lipo -create`).
+1. `swift build --build-system swiftbuild` in the given configuration (for release, once per arch, then `lipo -create`). Swift Build looks up dependency resource bundles in `Contents/Resources`; the native build system looks next to the `.app` and its binaries are rejected by a gate.
 2. Assemble `build/Slotbar.app/Contents/{MacOS/Slotbar, Resources/, Info.plist}`, copying the files from `Resources/` and the SwiftPM resource bundles (`*.bundle`, KeyboardShortcuts) from the bin path.
 3. Fill the `Info.plist` version placeholders: `CFBundleShortVersionString` from the `VERSION` env var (default `0.0.0-dev`), `CFBundleVersion` from `BUILD_NUMBER` (default `0`).
 4. `codesign --force --deep -s - build/Slotbar.app`.
