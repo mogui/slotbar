@@ -18,6 +18,9 @@ final class UIDelegate: NSObject, WKUIDelegate {
         closeWebView?(webView)
     }
 
+    // Explicit selector: SDKs before macOS 27 declare this completion handler without the main actor, so Swift
+    // would not match the requirement and WebKit would never call the method (alerts would auto-dismiss).
+    @objc(webView:runJavaScriptAlertPanelWithMessage:initiatedByFrame:completionHandler:)
     func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping @MainActor () -> Void) {
         let alert = Self.alert(message, frame: frame)
         alert.addButton(withTitle: "OK")
