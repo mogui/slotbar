@@ -489,12 +489,12 @@ Sources: [Build and release pipeline](https://github.com/mogui/slotbar/issues/16
 
 - `Package.swift`: `swift-tools-version: 6.0`, Swift 6 language mode, `platforms: [.macOS(.v14)]`, one executable target `Slotbar`, the test target `SlotbarTests` (section 2), KeyboardShortcuts as the only dependency. CI runs no tests.
 - Toolchain: the current stable Xcode on the CI runner, no pin.
-- Architectures: universal arm64 + x86_64 (`swift build -c release --arch arm64 --arch x86_64`). x86_64 is dropped the first time the runner's Xcode refuses it. Intel is best effort.
+- Architectures: universal arm64 + x86_64: one `swift build -c release --arch <arch>` per arch, joined with `lipo -create` (a multi-arch `swift build` switches to the Xcode build system, which fails with Swift 6 on the CI runner image). x86_64 is dropped the first time the runner's Xcode refuses it. Intel is best effort.
 
 ### 12.2 `scripts/build-app.sh [debug|release]`
 
-1. `swift build` in the given configuration (universal for release).
-2. Assemble `build/Slotbar.app/Contents/{MacOS/Slotbar, Resources/, Info.plist}`, copying the files from `Resources/`.
+1. `swift build` in the given configuration (for release, once per arch, then `lipo -create`).
+2. Assemble `build/Slotbar.app/Contents/{MacOS/Slotbar, Resources/, Info.plist}`, copying the files from `Resources/` and the SwiftPM resource bundles (`*.bundle`, KeyboardShortcuts) from the bin path.
 3. Fill the `Info.plist` version placeholders: `CFBundleShortVersionString` from the `VERSION` env var (default `0.0.0-dev`), `CFBundleVersion` from `BUILD_NUMBER` (default `0`).
 4. `codesign --force --deep -s - build/Slotbar.app`.
 5. `codesign --verify --strict build/Slotbar.app` as a hard gate (non-zero exit fails the script).
