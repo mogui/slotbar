@@ -1,6 +1,6 @@
 import WebKit
 
-/// Builds every Slot webview: Profile data store, user agent, inspector flag (SPEC 1, 3.4).
+/// Builds every Slot webview: Profile data store, user agent, inspector flag, download and UI delegates (SPEC 1, 3.4, 7.4, 7.6).
 @MainActor
 enum WebViewFactory {
     /// Read once, at first use during launch.
@@ -11,6 +11,8 @@ enum WebViewFactory {
         configuration.websiteDataStore = store
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.customUserAgent = userAgent
+        webView.navigationDelegate = DownloadManager.shared
+        webView.uiDelegate = UIDelegate.shared
         #if DEBUG
         webView.isInspectable = true
         #else
