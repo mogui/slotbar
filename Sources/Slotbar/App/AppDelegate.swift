@@ -108,7 +108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             controller.onFaviconChange = { [weak self] _ in self?.panelController?.refreshRail() }
             controller.onUnreadChange = { [weak self] in self?.refreshBadges() }
             controller.onRoute = { [weak self] id, url in self?.openRouted(id, url) }
-            controller.childWindowPlacement = { [weak self] width, height in
+            controller.childWindows.placement = { [weak self] width, height in
                 self?.panelController?.childWindowFrame(width: width, height: height) ?? NSRect(x: 0, y: 0, width: 800, height: 700)
             }
             controller.onChildWindowClosed = { [weak self] in self?.panelController?.childWindowClosed() }
@@ -117,7 +117,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         for controller in slotControllers {
             controller.slots = settings.slots
-            controller.profileName = settings.profiles.first { $0.id == controller.slot.profileId }?.name ?? ""
+            controller.childWindows.profileName = settings.profiles.first { $0.id == controller.slot.profileId }?.name ?? ""
         }
         panelController?.update(settings: settings, controllers: slotControllers)
         refreshBadges()

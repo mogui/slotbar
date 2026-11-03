@@ -79,7 +79,7 @@ final class PanelController: NSObject {
     /// True when the Panel or one of its Child windows is key.
     private var isKey: Bool { window.isKeyWindow || NSApp.keyWindow is ChildWindow }
 
-    private var childWindows: [ChildWindowController] { controllers.flatMap(\.childWindows) }
+    private var childWindows: [ChildWindowController] { controllers.flatMap(\.childWindows.windows) }
 
     /// Frame for a new Child window: on the Panel's screen, centered off the Panel (SPEC 4.7).
     func childWindowFrame(width: CGFloat?, height: CGFloat?) -> NSRect {

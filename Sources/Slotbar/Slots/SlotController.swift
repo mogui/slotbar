@@ -45,14 +45,8 @@ final class SlotController: NSObject, WKNavigationDelegate {
 
     var isInSignInMode: Bool { signInMode.isActive(at: Date()) }
 
-    /// Open Child windows (SPEC 4.7), oldest first.
-    private(set) var childWindows: [ChildWindowController] = []
-    /// Shown in Child window titles.
-    var profileName = "" {
-        didSet { childWindows.forEach { $0.profileName = profileName } }
-    }
-    /// Frame for a new Child window from the `window.open` width and height (Panel's screen, off the Panel).
-    var childWindowPlacement: ((_ width: CGFloat?, _ height: CGFloat?) -> NSRect)?
+    /// Popups that stay in the app (SPEC 4.7).
+    let childWindows = ChildWindows()
     /// A Child window closed (Cmd+W, `window.close()`, its crash, or the Slot closing it).
     var onChildWindowClosed: (() -> Void)?
 
@@ -70,6 +64,17 @@ final class SlotController: NSObject, WKNavigationDelegate {
         self.notifications = notifications
         favicon = FaviconFetcher(slot: slot, stores: stores, favicons: favicons)
         lifecycle = SlotLifecycle(keepAlive: slot.keepAlive)
+        super.init()
+        childWindows.onClose = { [weak self] in
+            guard let self else { return }
+            self.lifecycle.setChildWindowCount(self.childWindows.count, at: Date())
+            self.onChildWindowClosed?()
+        }
+        // A sign-in popup that lands on the Home host ends Sign-in mode, like the Slot's own commit (SPEC 7.2).
+        childWindows.onCommit = { [weak self] url in
+            guard let self else { return }
+            self.signInMode.didCommit(url, homeHost: self.slot.homeHost)
+        }
     }
 
     var reopenURL: URL { Slotbar.reopenURL(lastURL: webView?.url ?? lastURL, slot: slot) }
@@ -164,7 +169,7 @@ final class SlotController: NSObject, WKNavigationDelegate {
     }
 
     private func releaseWebView() {
-        closeChildWindows()
+        childWindows.closeAll()
         guard let webView else { return }
         lastURL = webView.url ?? lastURL
         webView.stopLoading()
@@ -195,7 +200,7 @@ final class SlotController: NSObject, WKNavigationDelegate {
 
     /// The Slot's webview or one of its Child windows' webviews.
     func owns(_ webView: WKWebView) -> Bool {
-        webView === self.webView || childWindows.contains { $0.webView === webView }
+        webView === self.webView || childWindows.contains(webView)
     }
 
     /// A popup from the Slot or one of its Child windows (SPEC 7.3): returns the Child window's webview, or nil.
@@ -210,25 +215,9 @@ final class SlotController: NSObject, WKNavigationDelegate {
         switch route {
         case .childWindow, .signIn:
             if route == .signIn { signInMode.enter(at: Date()) }
-            let width = features.width.map { CGFloat($0.doubleValue) }
-            let height = features.height.map { CGFloat($0.doubleValue) }
-            let frame = childWindowPlacement?(width, height) ?? NSRect(x: 0, y: 0, width: 800, height: 700)
-            let child = ChildWindowController(configuration: configuration, frame: frame, profileName: profileName)
-            child.onClose = { [weak self] child in
-                guard let self else { return }
-                self.childWindows.removeAll { $0 === child }
-                self.lifecycle.setChildWindowCount(self.childWindows.count, at: Date())
-                self.onChildWindowClosed?()
-            }
-            // A sign-in popup that lands on the Home host ends Sign-in mode, like the Slot's own commit (SPEC 7.2).
-            child.onCommit = { [weak self] url in
-                guard let self else { return }
-                self.signInMode.didCommit(url, homeHost: self.slot.homeHost)
-            }
-            childWindows.append(child)
+            let webView = childWindows.open(configuration: configuration, features: features)
             lifecycle.setChildWindowCount(childWindows.count, at: Date())
-            child.show()
-            return child.webView
+            return webView
         case .slot(let id, let target):
             onRoute?(id, target)
         case .browser(let target):
@@ -241,12 +230,7 @@ final class SlotController: NSObject, WKNavigationDelegate {
 
     /// `window.close()` from a Child window's page closes it; the Slot's own webview ignores it.
     func webViewDidClose(_ webView: WKWebView) {
-        childWindows.first { $0.webView === webView }?.close()
-    }
-
-    /// Slot unloaded, crashed or deleted (SPEC 4.7).
-    func closeChildWindows() {
-        childWindows.forEach { $0.close() }
+        childWindows.close(webView)
     }
 
     /// The Slot's Unread state while loaded; nil when Unloaded (contributes nothing); "count unknown"
@@ -356,7 +340,7 @@ final class SlotController: NSObject, WKNavigationDelegate {
         log.error("Slot \(self.slot.id, privacy: .public) page crashed: \(String(describing: response), privacy: .public)")
         switch response {
         case .reload:
-            closeChildWindows()
+            childWindows.closeAll()
             load(at: reopenURL)
         case .unload:
             unload()
