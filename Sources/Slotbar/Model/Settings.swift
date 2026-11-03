@@ -5,6 +5,12 @@ struct Settings: Codable, Equatable, Sendable {
     var general: General
     var profiles: [Profile]
     var slots: [Slot]
+
+    /// Flips one Slot's `notifications` (Rail right-click check item, SPEC 4.4).
+    mutating func toggleNotifications(slot id: UUID) {
+        guard let index = slots.firstIndex(where: { $0.id == id }) else { return }
+        slots[index].notifications.toggle()
+    }
 }
 
 struct General: Codable, Equatable, Sendable {

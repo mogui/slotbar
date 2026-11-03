@@ -154,4 +154,14 @@ import Testing
         #expect((try fileJSON()["general"] as? [String: Any])?["panelEdge"] as? String == "bottom")
         #expect(SettingsStore(directory: directory).settings.general.panelEdge == .bottom)
     }
+
+    @Test func togglingNotificationsPersistsImmediatelyForThatSlotOnly() {
+        let store = SettingsStore(directory: directory)
+        let calendar = store.settings.slots[1].id
+
+        store.update { $0.toggleNotifications(slot: calendar) }
+
+        let reloaded = SettingsStore(directory: directory)
+        #expect(reloaded.settings.slots.map(\.notifications) == [true, false, true])
+    }
 }

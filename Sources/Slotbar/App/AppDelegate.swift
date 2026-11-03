@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var panelController: PanelController?
     private var settingsStore: SettingsStore?
+    private var hotkey: Hotkey?
     private let profileStores = ProfileStores()
     private var favicons: FaviconCache?
     /// One per Slot, in list order.
@@ -20,7 +21,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let favicons = FaviconCache(directory: supportDirectory.appendingPathComponent("favicons"))
         self.favicons = favicons
         NSApp.mainMenu = Menus.mainMenu()
-        panelController = PanelController(favicons: favicons)
+        let panel = PanelController(settingsStore: store, favicons: favicons)
+        panel.onSlotAction = { [weak self] id, action in self?.perform(action, on: id) }
+        panelController = panel
+        hotkey = Hotkey { panel.toggle() }
         apply(store.settings)
         store.observe { [weak self] settings in self?.apply(settings) }
         let launchIds = slotsLoadedAtLaunch(store.settings.slots)
@@ -38,7 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             button.target = self
             button.action = #selector(statusItemClicked(_:))
-            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+            button.sendAction(on: [.leftMouseDown, .leftMouseUp, .rightMouseUp])
         }
         statusItem = item
         log.info("Launched")
@@ -69,14 +73,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panelController?.update(settings: settings, controllers: slotControllers)
     }
 
+    private func perform(_ action: SlotAction, on id: UUID) {
+        if action == .toggleNotifications {
+            settingsStore?.update { $0.toggleNotifications(slot: id) }
+        } else {
+            slotControllers.first { $0.slot.id == id }?.perform(action)
+        }
+    }
+
     @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
         guard let event = NSApp.currentEvent else { return }
         if event.type == .rightMouseUp || event.modifierFlags.contains(.control) {
-            statusItem?.menu = Menus.statusMenu()
+            guard event.type != .leftMouseDown else { return }
+            statusItem?.menu = Menus.statusMenu(hotkeyUnavailable: hotkey?.isUnavailable ?? false)
             sender.performClick(nil)
             statusItem?.menu = nil
+        } else if event.type == .leftMouseDown {
+            panelController?.statusMouseDown()
         } else {
-            panelController?.toggle()
+            panelController?.statusMouseUp()
         }
     }
 

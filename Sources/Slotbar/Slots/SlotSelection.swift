@@ -10,3 +10,8 @@ func slotToShow(slots: [Slot], lastActive: UUID?) -> UUID? {
 func slotsLoadedAtLaunch(_ slots: [Slot]) -> [UUID] {
     slots.filter(\.keepAlive).map(\.id)
 }
+
+/// Slot N for `Cmd+N` (1-based); `nil` when there is no Slot N (SPEC 9).
+func slotId(number: Int, in slots: [Slot]) -> UUID? {
+    slots.indices.contains(number - 1) ? slots[number - 1].id : nil
+}
