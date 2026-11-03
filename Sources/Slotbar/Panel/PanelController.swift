@@ -147,6 +147,13 @@ final class PanelController: NSObject {
         }
     }
 
+    /// Makes the Slot active, showing the Panel if it is hidden.
+    func show(slot id: UUID) {
+        activeSlot = id
+        show()
+        activate(id)
+    }
+
     func hide() {
         guard isShowing, let screen else { return }
         isShowing = false

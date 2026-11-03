@@ -3,10 +3,15 @@ import WebKit
 
 private let log = Log.logger("Slots")
 
-/// Owns one Slot's webview, created on first load (SPEC 6.2), and keeps its favicon and auto-label up to date (SPEC 3.1, 4.4).
+/// Owns one Slot's webview, created on first load (SPEC 6.2), routes its navigations (SPEC 7)
+/// and keeps its favicon and auto-label up to date (SPEC 3.1, 4.4).
 @MainActor
-final class SlotController: NSObject {
+final class SlotController: NSObject, WKNavigationDelegate {
     var slot: Slot
+    /// All Slots in list order, for routing to a same-Profile Slot.
+    var slots: [Slot] = []
+    /// Show the Slot with this id and load the URL there.
+    var onRoute: ((UUID, URL) -> Void)?
     private let stores: ProfileStores
     private let notifications: NotificationBridge
     private let favicons: FaviconCache
@@ -16,6 +21,13 @@ final class SlotController: NSObject {
     /// Called when the loaded Slot's Unread state changes.
     var onUnreadChange: (() -> Void)?
     private var unreadMonitor: UnreadMonitor?
+    private var signInMode = SignInMode()
+    /// The next main-frame request is the Slot's own load (starting, reopen or routed URL).
+    private var nextLoadIsOwn = false
+    /// A main-frame navigation has started and not committed or failed yet.
+    private var mainFrameProvisional = false
+
+    var isInSignInMode: Bool { signInMode.isActive(at: Date()) }
 
     /// Page title of a completed main-frame load while the Slot's label is null.
     var onUnlabeledLoad: ((_ slotId: UUID, _ pageTitle: String) -> Void)?
@@ -33,17 +45,27 @@ final class SlotController: NSObject {
     @discardableResult
     func load() -> WKWebView {
         if let webView { return webView }
-        let webView = WebViewFactory.makeWebView(store: stores.store(for: slot.profileId),
-                                                 notifications: notifications,
-                                                 faviconHandler: WeakScriptHandler(self))
-        webView.navigationDelegate = self
-        let monitor = UnreadMonitor(homeHost: slot.url.host() ?? "")
-        monitor.onChange = { [weak self] in self?.onUnreadChange?() }
-        monitor.attach(to: webView)
-        unreadMonitor = monitor
-        webView.load(URLRequest(url: slot.url))
-        self.webView = webView
-        log.debug("Loading Slot \(self.slot.id, privacy: .public)")
+        return load(at: slot.url)
+    }
+
+    /// Loads `url` (never routed): creates the webview when Unloaded, else navigates in place.
+    @discardableResult
+    func load(at url: URL) -> WKWebView {
+        let webView = self.webView ?? {
+            let webView = WebViewFactory.makeWebView(store: stores.store(for: slot.profileId),
+                                                     notifications: notifications,
+                                                     faviconHandler: WeakScriptHandler(self))
+            webView.navigationDelegate = self
+            let monitor = UnreadMonitor(homeHost: slot.url.host() ?? "")
+            monitor.onChange = { [weak self] in self?.onUnreadChange?() }
+            monitor.attach(to: webView)
+            unreadMonitor = monitor
+            self.webView = webView
+            log.debug("Loading Slot \(self.slot.id, privacy: .public)")
+            return webView
+        }()
+        nextLoadIsOwn = true
+        webView.load(URLRequest(url: url))
         return webView
     }
 
@@ -51,7 +73,7 @@ final class SlotController: NSObject {
     func perform(_ action: SlotAction) {
         switch action {
         case .goHome:
-            load().load(URLRequest(url: slot.url))
+            load(at: slot.url)
         case .openInBrowser:
             NSWorkspace.shared.open(webView?.url ?? slot.url)
         case .reload:
@@ -100,24 +122,71 @@ final class SlotController: NSObject {
             return nil
         }
     }
-}
 
-/// Owns navigation for the Slot webview; download decisions go to `DownloadManager` (SPEC 7.4).
-extension SlotController: WKNavigationDelegate {
-    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
-        DownloadManager.shared.webView(webView, decidePolicyFor: navigationAction, decisionHandler: decisionHandler)
+    // MARK: WKNavigationDelegate - routing, downloads via DownloadManager (SPEC 7.4), auto-label
+
+    func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
+                 decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
+        if action.shouldPerformDownload { return decisionHandler(.download) }
+        // No target frame: a popup, handled by `createWebViewWith` (SPEC 7.3).
+        guard let frame = action.targetFrame, let url = action.request.url else { return decisionHandler(.allow) }
+        var isExempt = false
+        if frame.isMainFrame {
+            let isRedirect = mainFrameProvisional && action.navigationType == .other
+            isExempt = nextLoadIsOwn || isRedirect || action.navigationType == .backForward || action.navigationType == .reload
+            nextLoadIsOwn = false
+        }
+        let request = NavigationRequest(url: url, isMainFrame: frame.isMainFrame, isExempt: isExempt,
+                                        opensOutside: action.modifierFlags.contains(.command) || action.buttonNumber == 1)
+        let route = NavigationRouter.route(request, from: slot, slots: slots, inSignInMode: isInSignInMode)
+        #if DEBUG
+        if frame.isMainFrame {
+            log.debug("Route \(url.absoluteString, privacy: .public) from Slot \(self.slot.id, privacy: .public) exempt=\(isExempt) signIn=\(self.isInSignInMode): \(String(describing: route), privacy: .public)")
+        }
+        #endif
+        switch route {
+        case .stay:
+            decisionHandler(.allow)
+        case .signIn:
+            signInMode.enter(at: Date())
+            decisionHandler(.allow)
+        case .slot(let id, let target):
+            decisionHandler(.cancel)
+            if id == slot.id { load(at: target) } else { onRoute?(id, target) }
+        case .browser(let target):
+            decisionHandler(.cancel)
+            NSWorkspace.shared.open(target)
+        }
     }
 
-    func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping @MainActor (WKNavigationResponsePolicy) -> Void) {
+    func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse,
+                 decisionHandler: @escaping @MainActor @Sendable (WKNavigationResponsePolicy) -> Void) {
         DownloadManager.shared.webView(webView, decidePolicyFor: navigationResponse, decisionHandler: decisionHandler)
     }
 
     func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
-        DownloadManager.shared.webView(webView, navigationAction: navigationAction, didBecome: download)
+        download.delegate = DownloadManager.shared
     }
 
     func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
-        DownloadManager.shared.webView(webView, navigationResponse: navigationResponse, didBecome: download)
+        download.delegate = DownloadManager.shared
+    }
+
+    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        mainFrameProvisional = true
+    }
+
+    func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+        mainFrameProvisional = false
+        if let url = webView.url { signInMode.didCommit(url, homeHost: NavigationRouter.homeHost(slot)) }
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        mainFrameProvisional = false
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        mainFrameProvisional = false
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {

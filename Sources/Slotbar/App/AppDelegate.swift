@@ -82,8 +82,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             controller.onFaviconChange = { [weak self] _ in self?.panelController?.refreshRail() }
             controller.onUnreadChange = { [weak self] in self?.refreshBadges() }
+            controller.onRoute = { [weak self] id, url in self?.openRouted(id, url) }
             return controller
         }
+        for controller in slotControllers { controller.slots = settings.slots }
         panelController?.update(settings: settings, controllers: slotControllers)
         refreshBadges()
     }
@@ -101,6 +103,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let title = button.image == nil ? ["Slotbar", badge].compactMap { $0 }.joined(separator: " ") : badge ?? ""
         let font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.menuBarFont(ofSize: 0).pointSize, weight: .regular)
         button.attributedTitle = NSAttributedString(string: title, attributes: [.font: font])
+    }
+
+    /// A routed link: load the target Slot at the URL (creating its webview when Unloaded) and show it (SPEC 6.2).
+    private func openRouted(_ id: UUID, _ url: URL) {
+        guard let controller = slotControllers.first(where: { $0.slot.id == id }) else { return }
+        controller.load(at: url)
+        panelController?.show(slot: id)
     }
 
     private func perform(_ action: SlotAction, on id: UUID) {
