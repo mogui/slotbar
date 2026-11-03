@@ -10,7 +10,7 @@ final class ChildWindows {
         didSet { windows.forEach { $0.profileName = profileName } }
     }
     /// Frame for a new Child window from the `window.open` width and height (Panel's screen, off the Panel).
-    var placement: ((_ width: CGFloat?, _ height: CGFloat?) -> NSRect)?
+    var placement: (_ width: CGFloat?, _ height: CGFloat?) -> NSRect? = { _, _ in nil }
     /// A window closed (Cmd+W, `window.close()`, its crash, or `closeAll`).
     var onClose: (() -> Void)?
     /// A window's main frame committed a navigation to this URL.
@@ -22,7 +22,7 @@ final class ChildWindows {
     func open(configuration: WKWebViewConfiguration, features: WKWindowFeatures) -> WKWebView {
         let width = features.width.map { CGFloat($0.doubleValue) }
         let height = features.height.map { CGFloat($0.doubleValue) }
-        let frame = placement?(width, height) ?? NSRect(x: 0, y: 0, width: 800, height: 700)
+        let frame = placement(width, height) ?? NSRect(origin: .zero, size: defaultChildWindowSize)
         let child = ChildWindowController(configuration: configuration, frame: frame, profileName: profileName)
         child.onClose = { [weak self] child in
             guard let self else { return }

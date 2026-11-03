@@ -1,9 +1,13 @@
 import AppKit
 
+/// `window.open` size when the page passes none (SPEC 4.7).
+let defaultChildWindowSize = NSSize(width: 800, height: 700)
+
 /// Child window frame (SPEC 4.7): `window.open` size (default 800x700) clamped to the visible frame,
 /// centered in the largest part of the visible frame the Panel does not cover.
 func childWindowFrame(width: CGFloat?, height: CGFloat?, visibleFrame v: NSRect, panelFrame: NSRect?) -> NSRect {
-    let size = NSSize(width: min(width ?? 800, v.width), height: min(height ?? 700, v.height))
+    let size = NSSize(width: min(width ?? defaultChildWindowSize.width, v.width),
+                      height: min(height ?? defaultChildWindowSize.height, v.height))
     var area = v
     if let panel = panelFrame?.intersection(v), !panel.isEmpty {
         let parts = [

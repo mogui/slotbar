@@ -6,6 +6,10 @@ struct Settings: Codable, Equatable, Sendable {
     var profiles: [Profile]
     var slots: [Slot]
 
+    func profile(for slot: Slot) -> Profile? {
+        profiles.first { $0.id == slot.profileId }
+    }
+
     /// Flips one Slot's `notifications` (Rail right-click check item, SPEC 4.4).
     mutating func toggleNotifications(slot id: UUID) {
         guard let index = slots.firstIndex(where: { $0.id == id }) else { return }

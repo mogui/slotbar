@@ -11,8 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let profileStores = ProfileStores()
     private let notificationBridge = NotificationBridge()
     private var favicons: FaviconCache?
-    /// One per Slot, in list order.
-    private var slotControllers: [SlotController] = []
+    private let slotRegistry = SlotRegistry()
     private var settingsWindow: SettingsWindowController?
     private var memoryPressure: DispatchSourceMemoryPressure?
 
@@ -40,17 +39,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsWindow = SettingsWindowController(store: store, hotkey: hotkey, openAtLogin: openAtLogin,
                                                   favicons: favicons, deleteProfile: { [weak self] id in self?.deleteProfile(id) })
         notificationBridge.slotForWebView = { [weak self] webView in
-            self?.slotControllers.first { $0.owns(webView) }?.slot
+            self?.slotRegistry.controller(owning: webView)?.slot
         }
         UIDelegate.shared.openPopup = { [weak self] opener, configuration, action, features in
-            self?.slotControllers.first { $0.owns(opener) }?
+            self?.slotRegistry.controller(owning: opener)?
                 .openPopup(from: opener, configuration: configuration, action: action, features: features)
         }
         UIDelegate.shared.closeWebView = { [weak self] webView in
-            self?.slotControllers.first { $0.owns(webView) }?.webViewDidClose(webView)
+            self?.slotRegistry.controller(owning: webView)?.webViewDidClose(webView)
         }
         notificationBridge.loadedSlots = { [weak self] in
-            self?.slotControllers.filter { $0.webView != nil }.map(\.slot) ?? []
+            self?.slotRegistry.controllers.filter { $0.webView != nil }.map(\.slot) ?? []
         }
         notificationBridge.panelShowingSlot = { panel.visibleSlot }
         notificationBridge.showSlot = { panel.show(slot: $0) }
@@ -59,7 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         store.observe { [weak self] settings in self?.apply(settings) }
         watchMemoryPressure()
         let launchIds = slotsLoadedAtLaunch(store.settings.slots)
-        for controller in slotControllers where launchIds.contains(controller.slot.id) {
+        for controller in slotRegistry.controllers where launchIds.contains(controller.slot.id) {
             controller.load()
         }
 
@@ -80,47 +79,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         warnIfOutsideApplications()
     }
 
-    /// Keeps one SlotController per Slot (reused by id), drops stale favicons and hands the controllers to the Panel.
+    /// Drops removed Slots' notifications and stale favicons, syncs the SlotControllers and hands them to the Panel.
     private func apply(_ settings: Settings) {
-        let remaining = Set(settings.slots.map(\.id))
-        for controller in slotControllers where !remaining.contains(controller.slot.id) {
-            controller.close()
-        }
-        notificationBridge.removeDelivered(slotIds: Set(slotControllers.map(\.slot.id)).subtracting(remaining))
-        guard let favicons else { return }
-        for id in faviconCachesToDelete(old: slotControllers.map(\.slot), new: settings.slots) {
+        guard let favicons, let panelController else { return }
+        let old = slotRegistry.slots
+        notificationBridge.removeDelivered(slotIds: Set(old.map(\.id)).subtracting(settings.slots.map(\.id)))
+        for id in faviconCachesToDelete(old: old, new: settings.slots) {
             favicons.remove(id)
         }
-        slotControllers = settings.slots.map { slot in
-            if let existing = slotControllers.first(where: { $0.slot.id == slot.id }) {
-                existing.slot = slot
-                return existing
-            }
-            let controller = SlotController(slot: slot, stores: profileStores,
-                                            notifications: notificationBridge, favicons: favicons)
-            controller.onUnlabeledLoad = { [weak self] id, title in
-                guard let store = self?.settingsStore else { return }
-                var labeled = store.settings
-                labeled.applyAutoLabel(slotId: id, pageTitle: title)
-                // A blank title changes nothing; skip the write and the observers.
-                if labeled != store.settings { store.update { $0 = labeled } }
-            }
-            controller.onFaviconChange = { [weak self] _ in self?.panelController?.refreshRail() }
-            controller.onUnreadChange = { [weak self] in self?.refreshBadges() }
-            controller.onRoute = { [weak self] id, url in self?.openRouted(id, url) }
-            controller.childWindows.placement = { [weak self] width, height in
-                self?.panelController?.childWindowFrame(width: width, height: height) ?? NSRect(x: 0, y: 0, width: 800, height: 700)
-            }
-            controller.onChildWindowClosed = { [weak self] in self?.panelController?.childWindowClosed() }
-            controller.onContentChange = { [weak self] in self?.panelController?.slotContentChanged(slot.id) }
-            return controller
-        }
-        for controller in slotControllers {
-            controller.slots = settings.slots
-            controller.childWindows.profileName = settings.profiles.first { $0.id == controller.slot.profileId }?.name ?? ""
-        }
-        panelController?.update(settings: settings, controllers: slotControllers)
+        slotRegistry.apply(settings) { makeSlotController($0, favicons: favicons, panel: panelController) }
+        panelController.update(settings: settings, controllers: slotRegistry.controllers)
         refreshBadges()
+    }
+
+    private func makeSlotController(_ slot: Slot, favicons: FaviconCache, panel: PanelController) -> SlotController {
+        let controller = SlotController(slot: slot, stores: profileStores, notifications: notificationBridge, favicons: favicons)
+        controller.onUnlabeledLoad = { [weak self] id, title in
+            guard let store = self?.settingsStore else { return }
+            var labeled = store.settings
+            labeled.applyAutoLabel(slotId: id, pageTitle: title)
+            // A blank title changes nothing; skip the write and the observers.
+            if labeled != store.settings { store.update { $0 = labeled } }
+        }
+        controller.onFaviconChange = { [weak panel] _ in panel?.refreshRail() }
+        controller.onUnreadChange = { [weak self] in self?.refreshBadges() }
+        controller.onRoute = { [weak self] id, url in self?.openRouted(id, url) }
+        controller.childWindows.placement = { [weak panel] width, height in
+            panel?.childWindowFrame(width: width, height: height)
+        }
+        controller.onChildWindowClosed = { [weak panel] in panel?.childWindowClosed() }
+        controller.onContentChange = { [weak panel] in panel?.slotContentChanged(slot.id) }
+        return controller
     }
 
     /// On a warning or critical event, Slots in their grace period unload at once (SPEC 6.2).
@@ -129,7 +118,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         source.setEventHandler { [weak self] in
             MainActor.assumeIsolated {
                 log.info("Memory pressure")
-                self?.slotControllers.forEach { $0.memoryPressure() }
+                self?.slotRegistry.controllers.forEach { $0.memoryPressure() }
             }
         }
         source.resume()
@@ -140,7 +129,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func refreshBadges() {
         panelController?.refreshRail()
         guard let button = statusItem?.button else { return }
-        let loaded = slotControllers.compactMap { controller in
+        let loaded = slotRegistry.controllers.compactMap { controller in
             controller.unread.map {
                 SlotUnread(profileId: controller.slot.profileId, homeHost: controller.slot.homeHost ?? "", state: $0)
             }
@@ -153,7 +142,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// A routed link: load the target Slot at the URL (creating its webview when Unloaded) and show it (SPEC 6.2).
     private func openRouted(_ id: UUID, _ url: URL) {
-        guard let controller = slotControllers.first(where: { $0.slot.id == id }) else { return }
+        guard let controller = slotRegistry.controller(for: id) else { return }
         controller.load(at: url)
         panelController?.show(slot: id)
     }
@@ -166,7 +155,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func perform(_ action: SlotAction, on id: UUID) {
-        slotControllers.first { $0.slot.id == id }?.perform(action)
+        slotRegistry.controller(for: id)?.perform(action)
     }
 
     @objc private func statusItemClicked(_ sender: NSStatusBarButton) {

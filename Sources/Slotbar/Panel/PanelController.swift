@@ -268,7 +268,7 @@ final class PanelController: NSObject {
         activeSlot = id
         slotArea.subviews.forEach { $0.removeFromSuperview() }
         let view: NSView
-        if let id, let controller = controllers.first(where: { $0.slot.id == id }) {
+        if let id, let controller = controllers.controller(for: id) {
             view = controller.contentView()
         } else {
             view = emptyState
