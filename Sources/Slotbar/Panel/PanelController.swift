@@ -47,7 +47,7 @@ final class PanelController: NSObject {
         resizeHandle.onDrag = { [weak self] pointer, ended in self?.resizeDragged(to: pointer, ended: ended) }
 
         NotificationCenter.default.addObserver(
-            self, selector: #selector(windowDidResignKey(_:)), name: NSWindow.didResignKeyNotification, object: window)
+            self, selector: #selector(windowDidResignKey(_:)), name: NSWindow.didResignKeyNotification, object: nil)
         NotificationCenter.default.addObserver(
             self, selector: #selector(screensDidChange(_:)),
             name: NSApplication.didChangeScreenParametersNotification, object: nil)
@@ -64,8 +64,29 @@ final class PanelController: NSObject {
         }
     }
 
-    /// True when the Panel (or, once they exist, one of its Child windows) is key.
-    private var isKey: Bool { window.isKeyWindow }
+    /// True when the Panel or one of its Child windows is key.
+    private var isKey: Bool { window.isKeyWindow || NSApp.keyWindow is ChildWindow }
+
+    private var childWindows: [ChildWindowController] { controllers.flatMap(\.childWindows) }
+
+    /// Frame for a new Child window: on the Panel's screen, centered off the Panel (SPEC 4.7).
+    func childWindowFrame(width: CGFloat?, height: CGFloat?) -> NSRect {
+        let target = screen ?? NSScreen.main
+        let visible = target?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let panel = isShowing ? panelFrame(visibleFrame: visible, edge: edge, depthFraction: storedFraction) : nil
+        return Slotbar.childWindowFrame(width: width, height: height, visibleFrame: visible, panelFrame: panel)
+    }
+
+    /// Keeps the Panel key after a key Child window closes, so the close does not auto-hide it.
+    /// Called from `windowWillClose`; runs before the auto-hide check queued by the resign-key.
+    func childWindowClosed() {
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, self.isShowing, NSApp.keyWindow == nil else { return }
+                self.window.makeKey()
+            }
+        }
+    }
 
     /// Global hotkey toggle (SPEC 4.5).
     func toggle() {
@@ -137,6 +158,7 @@ final class PanelController: NSObject {
         }
         window.level = .popUpMenu
         window.makeKeyAndOrderFront(nil)
+        childWindows.forEach { $0.showWithPanel() }
         animate(duration: reduceMotion ? 0.15 : 0.2, timing: .easeOut) { [window] in
             window.animator().setFrame(shown, display: true)
             window.animator().alphaValue = 1
@@ -161,6 +183,7 @@ final class PanelController: NSObject {
         animationID += 1
         let id = animationID
         window.level = .popUpMenu
+        childWindows.forEach { $0.hideWithPanel() }
         let fade = reduceMotion
         // Starts from the current frame, so a hide during the show slide reverses from where it is.
         let target = offscreenFrame(
@@ -309,6 +332,7 @@ final class PanelController: NSObject {
     /// Auto-hide (SPEC 4.5): any key window in this app (Settings, sheets, open/save panels, JS dialogs,
     /// Child windows) is a Slotbar window. The new key window is known only after the resign completes.
     @objc private func windowDidResignKey(_ notification: Notification) {
+        guard notification.object is PanelWindow || notification.object is ChildWindow else { return }
         DispatchQueue.main.async { [weak self] in
             MainActor.assumeIsolated {
                 guard let self, self.isShowing else { return }

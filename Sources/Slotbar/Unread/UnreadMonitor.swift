@@ -12,6 +12,8 @@ final class UnreadMonitor: NSObject, WKScriptMessageHandler {
     private let homeHost: String
     private var gmail = GmailUnread()
     private var titleObservation: NSKeyValueObservation?
+    /// Child windows share the Slot's user content controller; only this webview's page counts (SPEC 8.4).
+    private weak var webView: WKWebView?
 
     init(homeHost: String) {
         self.homeHost = homeHost
@@ -19,6 +21,7 @@ final class UnreadMonitor: NSObject, WKScriptMessageHandler {
 
     /// Installs the adapter before the webview's first load.
     func attach(to webView: WKWebView) {
+        self.webView = webView
         let script: String
         switch homeHost {
         case "mail.google.com": script = "unread-gmail"
@@ -42,7 +45,7 @@ final class UnreadMonitor: NSObject, WKScriptMessageHandler {
     }
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard message.frameInfo.isMainFrame, let body = message.body as? [String: Any] else { return }
+        guard message.frameInfo.isMainFrame, message.webView === webView, let body = message.body as? [String: Any] else { return }
         switch body["kind"] as? String {
         case "chat":
             update(chatUnread(faviconHref: body["href"] as? String, last: state))
