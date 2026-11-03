@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import Observation
 import Testing
 @testable import Slotbar
 
@@ -58,5 +59,24 @@ import Testing
 
         #expect(cache.image(for: slot) == nil)
         #expect(FaviconCache(directory: directory).image(for: slot) == nil)
+    }
+
+    /// Settings > Slots reads icons through Observation, so a new fetch shows without another edit (SPEC 10).
+    @Test func readersAreToldWhenAnIconIsStoredOrRemoved() {
+        let cache = FaviconCache(directory: directory)
+        let slot = UUID()
+        final class Changes: @unchecked Sendable { var count = 0 }
+        let changes = Changes()
+        func track() {
+            withObservationTracking { _ = cache.image(for: slot) } onChange: { changes.count += 1 }
+        }
+
+        track()
+        cache.store(imageData: Self.pngData(width: 16, height: 16), for: slot)
+        #expect(changes.count == 1)
+
+        track()
+        cache.remove(slot)
+        #expect(changes.count == 2)
     }
 }

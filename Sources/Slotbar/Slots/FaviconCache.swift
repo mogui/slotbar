@@ -1,19 +1,25 @@
 import AppKit
+import Observation
 
 private let log = Log.logger("Slots")
 
 /// Rail icons as 64x64 px PNGs in `favicons/<slot-id>.png`, kept in memory once read (SPEC 3.2, 4.4).
+/// Observable, so SwiftUI readers (Settings > Slots) redraw when an icon is stored or removed.
 @MainActor
+@Observable
 final class FaviconCache {
     static let pixelSize = 64
-    private let directory: URL
-    private var images: [UUID: NSImage] = [:]
+    @ObservationIgnored private let directory: URL
+    @ObservationIgnored private var images: [UUID: NSImage] = [:]
+    /// Bumped on every store or remove; `image(for:)` reads it so readers track icon changes.
+    private var revision = 0
 
     init(directory: URL) {
         self.directory = directory
     }
 
     func image(for slotId: UUID) -> NSImage? {
+        _ = revision
         if let image = images[slotId] { return image }
         guard let image = NSImage(contentsOf: file(for: slotId)) else { return nil }
         images[slotId] = image
@@ -35,6 +41,7 @@ final class FaviconCache {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             try png.write(to: file(for: slotId), options: .atomic)
             images[slotId] = NSImage(data: png)
+            revision += 1
         } catch {
             log.error("Cannot write favicon: \(error.localizedDescription, privacy: .public)")
         }
@@ -43,6 +50,7 @@ final class FaviconCache {
     func remove(_ slotId: UUID) {
         images[slotId] = nil
         try? FileManager.default.removeItem(at: file(for: slotId))
+        revision += 1
     }
 
     private func file(for slotId: UUID) -> URL {
