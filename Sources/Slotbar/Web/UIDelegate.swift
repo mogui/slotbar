@@ -18,23 +18,22 @@ final class UIDelegate: NSObject, WKUIDelegate {
         closeWebView?(webView)
     }
 
-    // Explicit selector: SDKs before macOS 27 declare this completion handler without the main actor, so Swift
-    // would not match the requirement and WebKit would never call the method (alerts would auto-dismiss).
-    @objc(webView:runJavaScriptAlertPanelWithMessage:initiatedByFrame:completionHandler:)
-    func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping @MainActor () -> Void) {
+    // Async forms: the completion-handler forms are declared with different closure isolation in the macOS 26
+    // and 27 SDKs, so a method matching one SDK silently misses the requirement in the other.
+    func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo) async {
         let alert = Self.alert(message, frame: frame)
         alert.addButton(withTitle: "OK")
-        present(alert, on: webView) { _ in completionHandler() }
+        _ = await present(alert, on: webView)
     }
 
-    func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping @MainActor (Bool) -> Void) {
+    func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo) async -> Bool {
         let alert = Self.alert(message, frame: frame)
         alert.addButton(withTitle: "OK")
         alert.addButton(withTitle: "Cancel")
-        present(alert, on: webView) { completionHandler($0 == .alertFirstButtonReturn) }
+        return await present(alert, on: webView) == .alertFirstButtonReturn
     }
 
-    func webView(_ webView: WKWebView, runJavaScriptTextInputPanelWithPrompt prompt: String, defaultText: String?, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping @MainActor (String?) -> Void) {
+    func webView(_ webView: WKWebView, runJavaScriptTextInputPanelWithPrompt prompt: String, defaultText: String?, initiatedByFrame frame: WKFrameInfo) async -> String? {
         let alert = Self.alert(prompt, frame: frame)
         let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
         field.stringValue = defaultText ?? ""
@@ -42,25 +41,20 @@ final class UIDelegate: NSObject, WKUIDelegate {
         alert.addButton(withTitle: "OK")
         alert.addButton(withTitle: "Cancel")
         alert.window.initialFirstResponder = field
-        present(alert, on: webView) { completionHandler($0 == .alertFirstButtonReturn ? field.stringValue : nil) }
+        return await present(alert, on: webView) == .alertFirstButtonReturn ? field.stringValue : nil
     }
 
-    func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping @MainActor ([URL]?) -> Void) {
+    func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters, initiatedByFrame frame: WKFrameInfo) async -> [URL]? {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = parameters.allowsMultipleSelection
         panel.canChooseDirectories = parameters.allowsDirectories
         panel.canChooseFiles = true
-        guard let window = webView.window else {
-            completionHandler(nil)
-            return
-        }
-        panel.beginSheetModal(for: window) { response in
-            completionHandler(response == .OK ? panel.urls : nil)
-        }
+        guard let window = webView.window else { return nil }
+        return await panel.beginSheetModal(for: window) == .OK ? panel.urls : nil
     }
 
-    func webView(_ webView: WKWebView, requestMediaCapturePermissionFor origin: WKSecurityOrigin, initiatedByFrame frame: WKFrameInfo, type: WKMediaCaptureType, decisionHandler: @escaping @MainActor (WKPermissionDecision) -> Void) {
-        decisionHandler(.deny)
+    func webView(_ webView: WKWebView, decideMediaCapturePermissionsFor origin: WKSecurityOrigin, initiatedBy frame: WKFrameInfo, type: WKMediaCaptureType) async -> WKPermissionDecision {
+        .deny
     }
 
     @available(macOS 27.0, *)
@@ -75,11 +69,8 @@ final class UIDelegate: NSObject, WKUIDelegate {
         return alert
     }
 
-    private func present(_ alert: NSAlert, on webView: WKWebView, completion: @escaping @MainActor (NSApplication.ModalResponse) -> Void) {
-        guard let window = webView.window else {
-            completion(alert.runModal())
-            return
-        }
-        alert.beginSheetModal(for: window) { completion($0) }
+    private func present(_ alert: NSAlert, on webView: WKWebView) async -> NSApplication.ModalResponse {
+        guard let window = webView.window else { return alert.runModal() }
+        return await alert.beginSheetModal(for: window)
     }
 }
