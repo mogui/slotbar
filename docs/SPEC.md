@@ -518,7 +518,7 @@ Signing is ad-hoc only: a sealed bundle signature is required to post notificati
 ### 12.4 Release workflow
 
 - `.github/workflows/release.yml`, triggered only on `v*` tag pushes, on a macOS runner. The YAML only calls scripts.
-- Steps: `VERSION=${tag#v} BUILD_NUMBER=$GITHUB_RUN_NUMBER scripts/build-app.sh release`, `ditto -c -k --keepParent build/Slotbar.app Slotbar-X.Y.Z.zip`, `shasum -a 256`, then `gh release create vX.Y.Z Slotbar-X.Y.Z.zip --notes "SHA-256: <hash>" --generate-notes`.
+- Steps (`scripts/release.sh vX.Y.Z`): `VERSION=${tag#v} BUILD_NUMBER=$GITHUB_RUN_NUMBER scripts/build-app.sh release`; a DMG `build/Slotbar-X.Y.Z.dmg` (`hdiutil create -format UDZO`, volume "Slotbar X.Y.Z") holding `Slotbar.app` and an `Applications` symlink; `shasum -a 256`; then `gh release create vX.Y.Z Slotbar-X.Y.Z.dmg --title "Slotbar X.Y.Z" --generate-notes` with notes giving the install steps (drag to Applications, `xattr -dr com.apple.quarantine`) and the SHA-256. `PUBLISH=0` stops after the DMG.
 - Versioning: SemVer tags from `v0.1.0`. Pre-1.0: minor = features, patch = fixes. Local builds are never uploaded.
 - No update checks. Upgrades are manual downloads from GitHub Releases.
 
@@ -531,16 +531,16 @@ Signing is ad-hoc only: a sealed bundle signature is required to post notificati
 
 Sources: [Choose the stack](https://github.com/mogui/slotbar/issues/8), [Build and release pipeline](https://github.com/mogui/slotbar/issues/16), [Lifecycle of Slots without keep-alive](https://github.com/mogui/slotbar/issues/14), [Notification behaviour](https://github.com/mogui/slotbar/issues/12), [Google login inside an embedded webview](https://github.com/mogui/slotbar/issues/4)
 
-The build session rewrites `README.md` with these sections:
+`README.md` opens with the app icon, a one-line description and badges (latest release, macOS 14+, Swift 6), then a **Features** list, then these sections:
 
 1. **What it is**: menu bar app, Panel from a screen edge, one Profile per Google account, `Ctrl+Option+S`, `Cmd+1..9`. Requires macOS 14+.
-2. **Install**: download `Slotbar-X.Y.Z.zip` from Releases, check the SHA-256, unzip, move `Slotbar.app` to `/Applications`, run `xattr -dr com.apple.quarantine /Applications/Slotbar.app`, open it. Alternative: open it once, then System Settings > Privacy & Security > "Open Anyway" (macOS 15+ has no Control-click Open). The app must live in `/Applications` or `~/Applications` for notifications.
+2. **Install**: download `Slotbar-X.Y.Z.dmg` from Releases, check the SHA-256, open it and drag `Slotbar.app` to `/Applications`, run `xattr -dr com.apple.quarantine /Applications/Slotbar.app`, open it. Alternative: open it once, then System Settings > Privacy & Security > "Open Anyway" (macOS 15+ has no Control-click Open). The app must live in `/Applications` or `~/Applications` for notifications.
 3. **First run**: the preset (Gmail, Calendar, Chat in Profile "Default"), allow notifications, sign in. Tip: "If you have a Chat Slot, turn off Chat in Gmail (Settings > Chat and Meet > Chat: Off)" to avoid loading Chat twice.
 4. **Signing in**: use password + 2FA; on a passkey or security-key prompt choose "Try another way". Advanced Protection and security-key-enforced Workspace accounts are not supported as Profiles. Slotbar presents a Firefox user agent; override it with `defaults write io.github.mogui.slotbar UserAgent "<string>"` and relaunch (`defaults delete io.github.mogui.slotbar UserAgent` to reset).
-5. **Usage**: Rail, right-click actions, shortcuts table (section 9), Keep-alive and Notifications per Slot, links open in the default browser.
-6. **Upgrade**: quit, replace the app in `/Applications`, strip quarantine again, open. macOS may show a "Login item added" banner after each upgrade when Open at login is on.
-7. **Build from source**: `scripts/build-app.sh release`, output in `build/Slotbar.app`; `swift test` runs the unit tests.
-8. **Limitations**: unsigned (ad-hoc) app; no passkeys; notifications only from loaded Slots; calls and huddles (Meet, Chat): use the browser; Google may block embedded sign-in at any time.
+5. **Usage**: Rail, right-click actions, shortcuts table (section 9), Settings in the Panel (General, Profiles, Slots; Keep-alive and Notifications per Slot).
+6. **Upgrade**: quit, drag the new app from the DMG onto `/Applications`, strip quarantine again, open. macOS may show a "Login item added" banner after each upgrade when Open at login is on.
+7. **Build from source**: `scripts/build-app.sh release`, output in `build/Slotbar.app`; `swift test` runs the unit tests. Releasing: push a `vX.Y.Z` tag; `PUBLISH=0 scripts/release.sh vX.Y.Z` builds the DMG locally.
+8. **Limitations**: unsigned (ad-hoc, not notarized) app; no passkeys; opening a Chat conversation from a notification reloads the Chat Slot; notifications only from loaded Slots; calls and huddles (Meet, Chat): use the browser; Google may block embedded sign-in at any time.
 
 ## 14. Verification on first build
 
