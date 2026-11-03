@@ -85,9 +85,14 @@ final class PanelController {
         refreshRail()
     }
 
-    private func refreshRail() {
+    /// Redraws the Rail, including each loaded Slot's badge.
+    func refreshRail() {
         guard let settings else { return }
-        rail.update(items: railItems(settings: settings, activeSlot: activeSlot))
+        var unread: [UUID: UnreadState] = [:]
+        for controller in controllers {
+            if let state = controller.unread { unread[controller.slot.id] = state }
+        }
+        rail.update(items: railItems(settings: settings, activeSlot: activeSlot, unread: unread))
     }
 
     /// Right edge only for now: the Rail sits on the outer (right) side.
