@@ -48,8 +48,23 @@ final class SlotController: NSObject, WKNavigationDelegate {
         return webView
     }
 
+    /// Go home, open current page in browser, reload (SPEC 7.5). Loads the Slot first if needed.
+    func perform(_ action: SlotAction) {
+        switch action {
+        case .goHome:
+            load(at: slot.url)
+        case .openInBrowser:
+            NSWorkspace.shared.open(webView?.url ?? slot.url)
+        case .reload:
+            if let webView { webView.reload() } else { load() }
+        case .toggleNotifications:
+            break
+        }
+    }
+
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
                  decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
+        if action.shouldPerformDownload { return decisionHandler(.download) }
         // No target frame: a popup, handled by `createWebViewWith` (SPEC 7.3).
         guard let frame = action.targetFrame, let url = action.request.url else { return decisionHandler(.allow) }
         var isExempt = false
@@ -79,6 +94,19 @@ final class SlotController: NSObject, WKNavigationDelegate {
             decisionHandler(.cancel)
             NSWorkspace.shared.open(target)
         }
+    }
+
+    func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse,
+                 decisionHandler: @escaping @MainActor @Sendable (WKNavigationResponsePolicy) -> Void) {
+        DownloadManager.shared.webView(webView, decidePolicyFor: navigationResponse, decisionHandler: decisionHandler)
+    }
+
+    func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
+        download.delegate = DownloadManager.shared
+    }
+
+    func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
+        download.delegate = DownloadManager.shared
     }
 
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
