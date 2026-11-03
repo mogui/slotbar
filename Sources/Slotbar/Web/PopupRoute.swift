@@ -18,7 +18,7 @@ enum PopupRoute: Equatable {
 func popupRoute(url: URL?, openerURL: URL?, from source: Slot, slots: [Slot],
                 inSignInMode: Bool, opensOutside: Bool) -> PopupRoute {
     guard let url, !url.absoluteString.isEmpty, url.absoluteString != "about:blank" else {
-        let openerOnHomeHost = openerURL?.host()?.lowercased() == NavigationRouter.homeHost(source)
+        let openerOnHomeHost = openerURL?.host()?.lowercased() == source.homeHost
         return openerOnHomeHost || inSignInMode ? .childWindow : .discard
     }
     let request = NavigationRequest(url: url, isMainFrame: true, isExempt: false, opensOutside: opensOutside)

@@ -142,7 +142,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let button = statusItem?.button else { return }
         let loaded = slotControllers.compactMap { controller in
             controller.unread.map {
-                SlotUnread(profileId: controller.slot.profileId, homeHost: controller.slot.url.host() ?? "", state: $0)
+                SlotUnread(profileId: controller.slot.profileId, homeHost: controller.slot.homeHost ?? "", state: $0)
             }
         }
         let badge = badgeText(BadgeAggregator.aggregate(loaded))

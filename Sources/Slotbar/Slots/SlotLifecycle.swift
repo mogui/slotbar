@@ -2,7 +2,7 @@ import Foundation
 
 /// Reopen URL (SPEC 6.2): the last main-frame URL while it is on the Home host, else the starting URL.
 func reopenURL(lastURL: URL?, slot: Slot) -> URL {
-    guard let lastURL, lastURL.host()?.lowercased() == NavigationRouter.homeHost(slot) else { return slot.url }
+    guard let lastURL, lastURL.host()?.lowercased() == slot.homeHost else { return slot.url }
     return lastURL
 }
 

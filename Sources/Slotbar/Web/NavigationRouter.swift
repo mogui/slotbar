@@ -42,15 +42,11 @@ enum NavigationRouter {
         if isSignInHost(target) { return .signIn }
 
         let host = target.host()?.lowercased()
-        if host == homeHost(source) { return target == request.url ? .stay : .slot(source.id, target) }
-        if let slot = slots.first(where: { $0.profileId == source.profileId && homeHost($0) == host }) {
+        if host == source.homeHost { return target == request.url ? .stay : .slot(source.id, target) }
+        if let slot = slots.first(where: { $0.profileId == source.profileId && $0.homeHost == host }) {
             return .slot(slot.id, target)
         }
         return .browser(target)
-    }
-
-    static func homeHost(_ slot: Slot) -> String? {
-        slot.url.host()?.lowercased()
     }
 
     /// `accounts.google.<TLD>` or `accounts.youtube.com`.

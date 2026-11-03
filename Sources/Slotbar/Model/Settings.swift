@@ -67,6 +67,9 @@ struct Slot: Codable, Equatable, Identifiable, Sendable {
         notifications = try c.decode(Bool.self, forKey: .notifications)
     }
 
+    /// The starting URL's host, lowercased (SPEC 7.1).
+    var homeHost: String? { url.host()?.lowercased() }
+
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id)

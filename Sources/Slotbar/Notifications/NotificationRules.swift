@@ -20,8 +20,8 @@ enum NotificationDecision: Equatable {
 /// A muted but loaded Slot still counts in `loadedSlots`.
 func notificationDecision(slot: Slot, originHost: String, loadedSlots: [Slot]) -> NotificationDecision {
     if !slot.notifications { return .muted }
-    let isCopy = originHost != slot.url.host() && loadedSlots.contains { other in
-        other.id != slot.id && other.profileId == slot.profileId && other.url.host() == originHost
+    let isCopy = originHost != slot.homeHost && loadedSlots.contains { other in
+        other.id != slot.id && other.profileId == slot.profileId && other.homeHost == originHost
     }
     return isCopy ? .duplicate : .deliver
 }

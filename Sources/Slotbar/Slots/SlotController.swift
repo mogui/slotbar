@@ -97,7 +97,7 @@ final class SlotController: NSObject, WKNavigationDelegate {
                                                      notifications: notifications,
                                                      faviconHandler: WeakScriptHandler(self))
             webView.navigationDelegate = self
-            let monitor = UnreadMonitor(homeHost: slot.url.host() ?? "")
+            let monitor = UnreadMonitor(homeHost: slot.homeHost ?? "")
             monitor.onChange = { [weak self] in self?.onUnreadChange?() }
             monitor.attach(to: webView)
             unreadMonitor = monitor
@@ -363,7 +363,7 @@ final class SlotController: NSObject, WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
         mainFrameProvisional = false
-        if let url = webView.url { signInMode.didCommit(url, homeHost: NavigationRouter.homeHost(slot)) }
+        if let url = webView.url { signInMode.didCommit(url, homeHost: slot.homeHost) }
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {

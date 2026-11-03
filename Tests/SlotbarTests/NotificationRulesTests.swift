@@ -47,6 +47,11 @@ import Testing
         #expect(notificationDecision(slot: mail, originHost: "mail.google.com", loadedSlots: [mail, secondMail]) == .deliver)
     }
 
+    @Test func homeHostsCompareCaseInsensitively() {
+        let upperChat = Self.slot("https://Chat.Google.com/")
+        #expect(notificationDecision(slot: mail, originHost: "chat.google.com", loadedSlots: [mail, upperChat]) == .duplicate)
+    }
+
     @Test func mutedSlotDropsItsNotifications() {
         let mutedChat = Self.slot("https://chat.google.com/", notifications: false)
         #expect(notificationDecision(slot: mutedChat, originHost: "chat.google.com", loadedSlots: [mail, mutedChat]) == .muted)
