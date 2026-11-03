@@ -245,9 +245,14 @@ final class PanelController: NSObject {
         refreshRail()
     }
 
+    /// Redraws the Rail, including each loaded Slot's badge.
     func refreshRail() {
         guard let settings else { return }
-        rail.update(items: railItems(settings: settings, activeSlot: activeSlot)) { [favicons] in favicons.image(for: $0) }
+        var unread: [UUID: UnreadState] = [:]
+        for controller in controllers {
+            if let state = controller.unread { unread[controller.slot.id] = state }
+        }
+        rail.update(items: railItems(settings: settings, activeSlot: activeSlot, unread: unread)) { [favicons] in favicons.image(for: $0) }
     }
 
     /// Rail on the outer side (next to the screen edge), Slot area filling the rest; both follow live resizes.

@@ -7,10 +7,13 @@ struct RailItem: Equatable {
     var color: ProfileColor
     var isActive: Bool
     var notifications: Bool
+    /// The Slot's own badge text (SPEC 8.4); nil when nothing is unread or the Slot is Unloaded.
+    var badge: String? = nil
 }
 
 /// One item per Slot in list order. Tooltip: label (Home host while null), plus `⌘N` for the first nine.
-func railItems(settings: Settings, activeSlot: UUID?) -> [RailItem] {
+/// `unread` holds loaded Slots only.
+func railItems(settings: Settings, activeSlot: UUID?, unread: [UUID: UnreadState] = [:]) -> [RailItem] {
     settings.slots.enumerated().map { index, slot in
         let name = slot.label ?? slot.url.host() ?? slot.url.absoluteString
         let color = settings.profiles.first { $0.id == slot.profileId }?.color ?? ""
@@ -18,6 +21,7 @@ func railItems(settings: Settings, activeSlot: UUID?) -> [RailItem] {
                         tooltip: index < 9 ? "\(name)  ⌘\(index + 1)" : name,
                         color: ProfileColor(hex: color),
                         isActive: slot.id == activeSlot,
-                        notifications: slot.notifications)
+                        notifications: slot.notifications,
+                        badge: unread[slot.id].flatMap { badgeText(Badge($0)) })
     }
 }

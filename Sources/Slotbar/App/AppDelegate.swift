@@ -47,14 +47,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if let image = NSImage(named: "StatusIcon") {
                 image.isTemplate = true
                 button.image = image
-            } else {
-                button.title = "Slotbar"
+                button.imagePosition = .imageLeading
             }
             button.target = self
             button.action = #selector(statusItemClicked(_:))
             button.sendAction(on: [.leftMouseDown, .leftMouseUp, .rightMouseUp])
         }
         statusItem = item
+        refreshBadges()
         log.info("Launched")
     }
 
@@ -81,9 +81,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if labeled != store.settings { store.update { $0 = labeled } }
             }
             controller.onFaviconChange = { [weak self] _ in self?.panelController?.refreshRail() }
+            controller.onUnreadChange = { [weak self] in self?.refreshBadges() }
             return controller
         }
         panelController?.update(settings: settings, controllers: slotControllers)
+        refreshBadges()
+    }
+
+    /// Status item title = aggregated badge in monospaced digits; the Rail shows each Slot's own (SPEC 8.4).
+    private func refreshBadges() {
+        panelController?.refreshRail()
+        guard let button = statusItem?.button else { return }
+        let loaded = slotControllers.compactMap { controller in
+            controller.unread.map {
+                SlotUnread(profileId: controller.slot.profileId, homeHost: controller.slot.url.host() ?? "", state: $0)
+            }
+        }
+        let badge = badgeText(BadgeAggregator.aggregate(loaded))
+        let title = button.image == nil ? ["Slotbar", badge].compactMap { $0 }.joined(separator: " ") : badge ?? ""
+        let font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.menuBarFont(ofSize: 0).pointSize, weight: .regular)
+        button.attributedTitle = NSAttributedString(string: title, attributes: [.font: font])
     }
 
     private func perform(_ action: SlotAction, on id: UUID) {

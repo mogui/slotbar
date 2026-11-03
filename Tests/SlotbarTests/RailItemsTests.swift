@@ -51,4 +51,14 @@ import Testing
         let items = railItems(settings: Self.settings([a, b]), activeSlot: b.id)
         #expect(items.map(\.isActive) == [false, true])
     }
+
+    @Test func eachItemShowsItsOwnSlotsBadgeWithoutCrossSlotDedup() {
+        let a = Self.slot("https://mail.google.com/", Self.work)
+        let b = Self.slot("https://mail.google.com/", Self.work)
+        let c = Self.slot("https://chat.google.com/", Self.work)
+        let d = Self.slot("https://calendar.google.com/", Self.work)
+        let items = railItems(settings: Self.settings([a, b, c, d]), activeSlot: nil,
+                              unread: [a.id: .count(3), b.id: .count(120), c.id: .unknown])
+        #expect(items.map(\.badge) == ["3", "99+", "\u{25CF}", nil])
+    }
 }

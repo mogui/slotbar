@@ -73,6 +73,7 @@ final class RailView: NSView {
             button.menu = menu
             button.layer?.backgroundColor = item.isActive
                 ? NSColor.controlAccentColor.withAlphaComponent(0.25).cgColor : nil
+            if let badge = item.badge { addCapsule(badge, to: button) }
             stack.addArrangedSubview(button)
         }
         let gear = iconButton(symbol: "gearshape", tint: .secondaryLabelColor)
@@ -115,6 +116,25 @@ final class RailView: NSView {
         dot.layer?.borderColor = NSColor.windowBackgroundColor.cgColor
         button.addSubview(dot)
         return button
+    }
+
+    /// Small filled capsule over the icon's top trailing corner (SPEC 8.4).
+    private func addCapsule(_ text: String, to button: NSButton) {
+        let label = NSTextField(labelWithString: text)
+        label.font = .monospacedDigitSystemFont(ofSize: 9, weight: .semibold)
+        label.textColor = .white
+        label.alignment = .center
+        label.wantsLayer = true
+        label.layer?.backgroundColor = NSColor.systemRed.cgColor
+        label.layer?.cornerRadius = 6
+        label.translatesAutoresizingMaskIntoConstraints = false
+        button.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.heightAnchor.constraint(equalToConstant: 12),
+            label.widthAnchor.constraint(equalToConstant: max(12, label.intrinsicContentSize.width + 6)),
+            label.topAnchor.constraint(equalTo: button.topAnchor),
+            label.trailingAnchor.constraint(equalTo: button.trailingAnchor),
+        ])
     }
 
     @objc private func iconClicked(_ sender: NSButton) {

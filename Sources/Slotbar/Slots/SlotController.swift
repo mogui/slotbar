@@ -13,6 +13,9 @@ final class SlotController: NSObject {
     private(set) var webView: WKWebView?
     /// Icon link last fetched in this session.
     private var lastIconURL: URL?
+    /// Called when the loaded Slot's Unread state changes.
+    var onUnreadChange: (() -> Void)?
+    private var unreadMonitor: UnreadMonitor?
 
     /// Page title of a completed main-frame load while the Slot's label is null.
     var onUnlabeledLoad: ((_ slotId: UUID, _ pageTitle: String) -> Void)?
@@ -34,6 +37,10 @@ final class SlotController: NSObject {
                                                  notifications: notifications,
                                                  faviconHandler: WeakScriptHandler(self))
         webView.navigationDelegate = self
+        let monitor = UnreadMonitor(homeHost: slot.url.host() ?? "")
+        monitor.onChange = { [weak self] in self?.onUnreadChange?() }
+        monitor.attach(to: webView)
+        unreadMonitor = monitor
         webView.load(URLRequest(url: slot.url))
         self.webView = webView
         log.debug("Loading Slot \(self.slot.id, privacy: .public)")
@@ -52,6 +59,11 @@ final class SlotController: NSObject {
         case .toggleNotifications:
             break
         }
+    }
+
+    /// The Slot's Unread state while loaded; nil when Unloaded (contributes nothing).
+    var unread: UnreadState? {
+        webView == nil ? nil : unreadMonitor?.state
     }
 
     fileprivate func iconLinkReported(_ body: Any) {
