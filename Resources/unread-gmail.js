@@ -1,8 +1,10 @@
 // Slotbar: Gmail Unread state (SPEC 8.4). Inbox DOM count; Atom feed only while the DOM count is missing.
-(() => {
+// Runs only in the Slot's own page: Child windows (pop-out compose) share this script and get a false reply.
+(async () => {
   if (window.top !== window) return;
   const handler = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.slotbarUnread;
   if (!handler) return;
+  if (!(await handler.postMessage({ kind: "isSlotPage" }))) return;
   const STARTUP_GRACE_MS = 15000;
   const ATOM_INTERVAL_MS = 60000;
   const startedAt = Date.now();

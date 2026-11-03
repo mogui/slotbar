@@ -4,7 +4,7 @@ private let log = Log.logger("Unread")
 
 /// Tracks one loaded Slot's Unread state through the adapter chosen by its Home host (SPEC 8.4).
 @MainActor
-final class UnreadMonitor: NSObject, WKScriptMessageHandler {
+final class UnreadMonitor: NSObject, WKScriptMessageHandlerWithReply {
     static let handlerName = "slotbarUnread"
 
     private(set) var state: UnreadState = .none
@@ -40,13 +40,19 @@ final class UnreadMonitor: NSObject, WKScriptMessageHandler {
             return
         }
         let controller = webView.configuration.userContentController
-        controller.add(self, name: Self.handlerName)
+        controller.addScriptMessageHandler(self, contentWorld: .page, name: Self.handlerName)
         controller.addUserScript(WKUserScript(source: source, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
     }
 
-    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard message.frameInfo.isMainFrame, message.webView === webView, let body = message.body as? [String: Any] else { return }
+    /// Replies to `isSlotPage` with whether the sender is the Slot's own page, so a Child window
+    /// sharing the user content controller never starts the Gmail Atom polling (SPEC 8.4).
+    func userContentController(_ userContentController: WKUserContentController,
+                               didReceive message: WKScriptMessage) async -> (Any?, String?) {
+        let isSlotPage = message.frameInfo.isMainFrame && message.webView === webView
+        guard isSlotPage, let body = message.body as? [String: Any] else { return (false, nil) }
         switch body["kind"] as? String {
+        case "isSlotPage":
+            return (true, nil)
         case "chat":
             update(chatUnread(faviconHref: body["href"] as? String, last: state))
         case "gmail":
@@ -64,6 +70,7 @@ final class UnreadMonitor: NSObject, WKScriptMessageHandler {
         default:
             break
         }
+        return (nil, nil)
     }
 
     private func update(_ new: UnreadState) {
