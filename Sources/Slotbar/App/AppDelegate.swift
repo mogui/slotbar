@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotkey: Hotkey?
     private let profileStores = ProfileStores()
     private let notificationBridge = NotificationBridge()
+    private var favicons: FaviconCache?
     /// One per Slot, in list order.
     private var slotControllers: [SlotController] = []
     private var settingsWindow: NSWindow?
@@ -18,8 +19,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let supportDirectory = URL.applicationSupportDirectory.appendingPathComponent("Slotbar")
         let store = SettingsStore(directory: supportDirectory)
         settingsStore = store
+        let favicons = FaviconCache(directory: supportDirectory.appendingPathComponent("favicons"))
+        self.favicons = favicons
         NSApp.mainMenu = Menus.mainMenu()
-        let panel = PanelController(settingsStore: store)
+        let panel = PanelController(settingsStore: store, favicons: favicons)
         panel.onSlotAction = { [weak self] id, action in self?.perform(action, on: id) }
         panelController = panel
         hotkey = Hotkey { panel.toggle() }
@@ -55,16 +58,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         log.info("Launched")
     }
 
-    /// Keeps one SlotController per Slot (reused by id) and hands them to the Panel.
+    /// Keeps one SlotController per Slot (reused by id), drops stale favicons and hands the controllers to the Panel.
     private func apply(_ settings: Settings) {
         let remaining = Set(settings.slots.map(\.id))
         notificationBridge.removeDelivered(slotIds: Set(slotControllers.map(\.slot.id)).subtracting(remaining))
+        guard let favicons else { return }
+        for id in faviconCachesToDelete(old: slotControllers.map(\.slot), new: settings.slots) {
+            favicons.remove(id)
+        }
         slotControllers = settings.slots.map { slot in
             if let existing = slotControllers.first(where: { $0.slot.id == slot.id }) {
                 existing.slot = slot
                 return existing
             }
-            return SlotController(slot: slot, stores: profileStores, notifications: notificationBridge)
+            let controller = SlotController(slot: slot, stores: profileStores,
+                                            notifications: notificationBridge, favicons: favicons)
+            controller.onUnlabeledLoad = { [weak self] id, title in
+                guard let store = self?.settingsStore else { return }
+                var labeled = store.settings
+                labeled.applyAutoLabel(slotId: id, pageTitle: title)
+                // A blank title changes nothing; skip the write and the observers.
+                if labeled != store.settings { store.update { $0 = labeled } }
+            }
+            controller.onFaviconChange = { [weak self] _ in self?.panelController?.refreshRail() }
+            return controller
         }
         panelController?.update(settings: settings, controllers: slotControllers)
     }

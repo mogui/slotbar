@@ -9,6 +9,7 @@ private let log = Log.logger("Panel")
 final class PanelController: NSObject {
     private let window = PanelWindow()
     private let settingsStore: SettingsStore
+    private let favicons: FaviconCache
     private let resizeHandle = PanelResizeHandle()
     private let rail = RailView()
     private let slotArea = NSView()
@@ -28,8 +29,9 @@ final class PanelController: NSObject {
     private var animationID = 0
     private var isShowing = false
 
-    init(settingsStore: SettingsStore) {
+    init(settingsStore: SettingsStore, favicons: FaviconCache) {
         self.settingsStore = settingsStore
+        self.favicons = favicons
         super.init()
         let content = NSView()
         content.wantsLayer = true
@@ -243,9 +245,9 @@ final class PanelController: NSObject {
         refreshRail()
     }
 
-    private func refreshRail() {
+    func refreshRail() {
         guard let settings else { return }
-        rail.update(items: railItems(settings: settings, activeSlot: activeSlot))
+        rail.update(items: railItems(settings: settings, activeSlot: activeSlot)) { [favicons] in favicons.image(for: $0) }
     }
 
     /// Rail on the outer side (next to the screen edge), Slot area filling the rest; both follow live resizes.

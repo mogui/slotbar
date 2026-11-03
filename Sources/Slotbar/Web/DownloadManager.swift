@@ -4,7 +4,7 @@ import WebKit
 private let log = Log.logger("Web")
 
 /// Turns attachments, unshowable responses and `<a download>` into `WKDownload`s saved to ~/Downloads (SPEC 7.4).
-/// Also the Slot webviews' navigation delegate until link routing owns that role.
+/// `SlotController`, the Slot webviews' navigation delegate, forwards its download decisions here.
 @MainActor
 final class DownloadManager: NSObject, WKNavigationDelegate, WKDownloadDelegate {
     static let shared = DownloadManager()
