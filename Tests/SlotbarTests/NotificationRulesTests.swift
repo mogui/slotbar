@@ -52,14 +52,14 @@ import Testing
         #expect(notificationDecision(slot: mail, originHost: "chat.google.com", loadedSlots: [mail, upperChat]) == .duplicate)
     }
 
-    @Test func mutedSlotDropsItsNotifications() {
-        let mutedChat = Self.slot("https://chat.google.com/", notifications: false)
-        #expect(notificationDecision(slot: mutedChat, originHost: "chat.google.com", loadedSlots: [mail, mutedChat]) == .muted)
+    @Test func slotWithNotificationsOffDropsThem() {
+        let quietChat = Self.slot("https://chat.google.com/", notifications: false)
+        #expect(notificationDecision(slot: quietChat, originHost: "chat.google.com", loadedSlots: [mail, quietChat]) == .notificationsOff)
     }
 
-    @Test func mutedButLoadedSlotStillSuppressesTheCopy() {
-        let mutedChat = Self.slot("https://chat.google.com/", notifications: false)
-        #expect(notificationDecision(slot: mail, originHost: "chat.google.com", loadedSlots: [mail, mutedChat]) == .duplicate)
+    @Test func loadedSlotWithNotificationsOffStillSuppressesTheCopy() {
+        let quietChat = Self.slot("https://chat.google.com/", notifications: false)
+        #expect(notificationDecision(slot: mail, originHost: "chat.google.com", loadedSlots: [mail, quietChat]) == .duplicate)
     }
 }
 

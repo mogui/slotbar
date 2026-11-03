@@ -89,8 +89,8 @@ final class NotificationBridge: NSObject {
         let pageId = body["pageId"] as? String ?? ""
 
         switch notificationDecision(slot: slot, originHost: originHost, loadedSlots: loadedSlots()) {
-        case .muted:
-            log.debug("Dropped notification from muted Slot \(slot.id, privacy: .public)")
+        case .notificationsOff:
+            log.debug("Dropped notification: Notifications off in Slot \(slot.id, privacy: .public)")
             return nativeId
         case .duplicate:
             log.debug("Dropped \(originHost, privacy: .public) copy in Slot \(slot.id, privacy: .public)")
