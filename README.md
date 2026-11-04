@@ -32,6 +32,25 @@
 - **Links where they belong**: links on the Slot's host stay in Slotbar, links to another Slot of the same Profile open there, other hosts open in your default browser. `Cmd`-click does the opposite; right-click a link to choose.
 - **Optional Dock icon**: turn on Show in Dock to reach Slotbar with `Cmd+Tab`.
 
+## How it compares
+
+Slotbar does less on purpose. No workspaces, no extensions, no AI, no sync, no account, no subscription: a hotkey, a Panel and your web apps.
+
+| | Slotbar | Slidepad | Notihub | Shift | Wavebox | Rambox | Ferdium | WebCatalog |
+|---|---|---|---|---|---|---|---|---|
+| Kind | Slide-in Panel | Slide-in Panel | Menu bar hub | Browser | Browser | App hub | App hub | Web apps as desktop apps |
+| Engine | Native (Swift, WebKit) | WebKit | Native | Chromium | Chromium | Electron | Electron | - |
+| Platforms | macOS | macOS | macOS | macOS, Windows | macOS, Windows, Linux | macOS, Windows, Linux | macOS, Windows, Linux | macOS, Windows, Linux |
+| Price | Free | $25 one time or $2/mo | Free | Free tier, $199.99/yr | Free tier, EUR 8.33/mo | Free tier, $52.50/yr | Free | Free tier, $5/mo |
+| Open source | MIT | No | MIT | No | No | No | Yes | No |
+| Opens over any app | Global hotkey | Hot edges and corners | Global hotkey | No | No | No | No | No |
+| Isolated sessions per account | Yes | Yes | Yes | Yes | Yes | Pro | Yes | Yes |
+| Native notifications, unread badges | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Account required | No | No | No | Yes | Yes | Yes | No | Yes |
+| Workspaces, extensions, AI, sync | None | Extensions, iCloud sync, MCP server | Filters, quiet hours | All | All | Most | Workspaces, sync | Spaces, sync, ad blocker |
+
+Prices and features as listed on each vendor's site in November 2026.
+
 ## Install
 
 1. Download `Slotbar-X.Y.Z.dmg` from the [latest release](https://github.com/mogui/slotbar/releases/latest).
@@ -172,6 +191,16 @@ git tag v0.3.0 && git push origin v0.3.0
 ## How it was built
 
 Slotbar was built with a "dark factory" process at level 4/5: AI coding agents wrote the first draft almost entirely on their own, starting from the spec in [docs/SPEC.md](docs/SPEC.md).
+
+Getting to the current version (0.2.2) took:
+
+| | |
+|---|---|
+| Period | November 2-4, 2026 (3 days) |
+| Claude Code sessions | 52 (main session, workers, reviews) |
+| Active time (wall clock) | ~7.8 h |
+| Agent time (parallel workers summed) | ~12.1 h |
+| Tokens | ~141 M, mostly Claude Opus |
 
 ## Contributing
 
