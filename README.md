@@ -29,7 +29,7 @@
 - **Native notifications**: web notifications become macOS notifications. Clicking a Google Chat notification opens that conversation.
 - **Unread badges**: Gmail's Inbox count, Chat's unread dot and any `(N)` page title show on the Slot icon and in the menu bar.
 - **Light on memory**: Slots without Keep-alive unload 5 minutes after you last looked at them.
-- **Links where they belong**: same-domain links stay in Slotbar, links to another Slot of the same Profile open there, other domains open in your default browser. `Cmd`-click does the opposite; right-click a link to choose.
+- **Links where they belong**: links on the Slot's host stay in Slotbar, links to another Slot of the same Profile open there, other hosts open in your default browser. `Cmd`-click does the opposite; right-click a link to choose.
 - **Optional Dock icon**: turn on Show in Dock to reach Slotbar with `Cmd+Tab`.
 
 ## Install

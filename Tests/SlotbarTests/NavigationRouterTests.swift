@@ -57,16 +57,17 @@ import Testing
         #expect(route("https://example.com/a", inverts: true) == .stay)
     }
 
-    @Test func sameDomainAsHomeStaysInSlot() {
+    @Test func otherHostOfSameDomainGoesToDefaultBrowser() {
         let trello = Self.slot("https://trello.com/")
-        #expect(route("https://www.trello.com/b/1", from: trello) == .stay)
-        #expect(route("https://www.trello.com/b/1", from: trello, inverts: true) ==
-                .browser(URL(string: "https://www.trello.com/b/1")!))
+        #expect(route("https://www.trello.com/b/1", from: trello) == .browser(URL(string: "https://www.trello.com/b/1")!))
+        #expect(route("https://www.trello.com/b/1", from: trello, inverts: true) == .stay)
     }
 
-    @Test func sameDomainAsCurrentPageStaysInSlot() {
+    @Test func sameHostAsCurrentPageStaysInSlot() {
         let trello = Self.slot("https://trello.com/")
         #expect(route("https://id.atlassian.com/login/mfa", from: trello, sourceURL: "https://id.atlassian.com/login") == .stay)
+        #expect(route("https://admin.atlassian.com/", from: trello, sourceURL: "https://id.atlassian.com/login") ==
+                .browser(URL(string: "https://admin.atlassian.com/")!))
     }
 
     @Test(arguments: ["https://id.atlassian.com/login", "https://example.com/a"])
@@ -80,11 +81,6 @@ import Testing
                 .browser(URL(string: "https://mail.google.com/mail/u/0/")!))
         #expect(route("https://mail.google.com/mail/u/0/", override: .outside, inSignInMode: true) ==
                 .browser(URL(string: "https://mail.google.com/mail/u/0/")!))
-    }
-
-    @Test(arguments: [("a.b.example.com", "example.com"), ("x.bbc.co.uk", "bbc.co.uk"), ("trello.com", "trello.com")])
-    func siteDomain(host: String, domain: String) {
-        #expect(NavigationRouter.siteDomain(host) == domain)
     }
 
     @Test(arguments: ["mailto:a@example.com", "tel:+391234", "zoommtg://zoom.us/join?confno=1"])

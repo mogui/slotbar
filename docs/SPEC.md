@@ -310,14 +310,14 @@ Sources: [Link routing rules](https://github.com/mogui/slotbar/issues/11), [Goog
 
 Decided once per navigation, in `decidePolicyFor navigationAction`, on its first request. The initial load of the starting URL, the reopen URL and a routed URL are never routed.
 
-Only clicked links (`navigationType == .linkActivated`) are routed. Form submissions and script navigations stay in the Slot. **Same domain** means the target's registrable domain (last two labels, three under `co.`/`com.`/`org.`/`net.`/`ac.`/`gov.`/`edu.` plus a two-letter TLD) equals that of the Home host or of the current page.
+Only clicked links (`navigationType == .linkActivated`) are routed. Form submissions and script navigations stay in the Slot.
 
 | Case | Route |
 |---|---|
 | Host equals the Home host | Stay in the Slot. |
 | Host equals the Home host of another Slot of the same Profile (first in list order) | Show that Slot and load the URL there (section 6.2). Never a Slot of another Profile. |
-| Same domain | Stay in the Slot. |
-| Another domain | Default browser (`NSWorkspace.shared.open`). |
+| Host equals the current page's host | Stay in the Slot. |
+| Any other host, subdomains of the same domain included | Default browser (`NSWorkspace.shared.open`). |
 | Cmd-click or middle-click (`modifierFlags.contains(.command)` or `buttonNumber == 4`) | The opposite of the default: a link that would stay (or go to another Slot) opens in the default browser; a link that would go to the browser loads in the Slot. |
 | Link context menu | **Open Link in Slotbar** loads the link in the Slot (or Child window); **Open Link in Browser** opens it in the default browser. Always offered, also in Sign-in mode. |
 | Form submissions, script navigations | Stay in the Slot. |
@@ -337,8 +337,8 @@ The Google host lists are hardcoded. There are no routing settings.
 
 ### 7.3 Popups
 
-- `window.open` and `target=_blank` (`createWebViewWith`): the target is routed by the rules above.
-- It stays when the route is "stay in the Slot" (same domain as the Home host or the opener page, Cmd-click on another domain, or a `window.open` from script), when the URL is `about:blank` or empty and the opener is on the Home host, or when the Slot is in Sign-in mode. It opens as a **Child window** (section 4.7).
+- `window.open` and `target=_blank` (`createWebViewWith`): the target is routed by the rules above. A `window.open` without width and height counts as a clicked link.
+- It stays when the route is "stay in the Slot" (Home host or the opener page's host, Cmd-click on another host, or a `window.open` from script with a width or height), when the URL is `about:blank` or empty and the opener is on the Home host, or when the Slot is in Sign-in mode. It opens as a **Child window** (section 4.7).
 - Otherwise it opens in the default browser and `nil` is returned (no window).
 - Popups without a user gesture follow the WebKit default (blocked).
 

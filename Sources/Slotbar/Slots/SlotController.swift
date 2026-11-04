@@ -208,7 +208,9 @@ final class SlotController: NSObject, WKNavigationDelegate {
                    action: WKNavigationAction, features: WKWindowFeatures) -> WKWebView? {
         let route = popupRoute(url: action.request.url, openerURL: opener.url, from: slot, slots: slots,
                                inSignInMode: isInSignInMode,
-                               isLinkClick: action.navigationType == .linkActivated,
+                               // Google Chat opens links with `window.open(url)`: a popup without a size is a link.
+                               isLinkClick: action.navigationType == .linkActivated
+                                   || (features.width == nil && features.height == nil),
                                inverts: action.inverts)
         #if DEBUG
         log.debug("Popup \(action.request.url?.absoluteString ?? "", privacy: .public) from Slot \(self.slot.id, privacy: .public): \(String(describing: route), privacy: .public)")

@@ -58,21 +58,10 @@ enum NavigationRouter {
         let host = target.host()?.lowercased()
         let sameSlot = host == source.homeHost
         let otherSlot = sameSlot ? nil : slots.first(where: { $0.profileId == source.profileId && $0.homeHost == host })
-        let sameDomain = host.map { host in
-            [source.homeHost, request.sourceURL?.host()?.lowercased()].contains { $0.map(siteDomain) == siteDomain(host) }
-        } ?? false
-        if request.inverts { return sameSlot || otherSlot != nil || sameDomain ? .browser(target) : inPlace }
+        let sameHost = host != nil && host == request.sourceURL?.host()?.lowercased()
+        if request.inverts { return sameSlot || otherSlot != nil || sameHost ? .browser(target) : inPlace }
         if let otherSlot { return .slot(otherSlot.id, target) }
-        return sameSlot || sameDomain ? inPlace : .browser(target)
-    }
-
-    /// The registrable domain, approximated: the last two labels, three under `co.`/`com.`/`org.`/`net.`/`ac.`/`gov.`/`edu.` plus a two-letter TLD (`co.uk`).
-    static func siteDomain(_ host: String) -> String {
-        let labels = host.split(separator: ".")
-        guard labels.count > 2 else { return host }
-        let secondLevel = ["co", "com", "org", "net", "ac", "gov", "edu"]
-        let count = labels.last!.count == 2 && secondLevel.contains(String(labels[labels.count - 2])) ? 3 : 2
-        return labels.suffix(count).joined(separator: ".")
+        return sameSlot || sameHost ? inPlace : .browser(target)
     }
 
     /// `accounts.google.<TLD>` or `accounts.youtube.com`.
