@@ -391,7 +391,7 @@ Sources: [Notification behaviour](https://github.com/mogui/slotbar/issues/12), [
 
 - `didReceive response`: show the Panel on the originating Slot through the normal show path (an Unloaded Slot loads at its reopen URL). Child windows are not brought forward.
 - If the same page instance is still alive, call the page's `onclick` for that native id via `evaluateJavaScript`.
-- Deep link: when no page handler takes the click (no `onclick` and no `click` listener, as with notifications posted through `registration.showNotification`) or the page instance is gone, a link derived from the notification's `data` loads in the Slot through the routed-link path. `chat.google.com`: the space or DM id in `data` opens `https://chat.google.com/app/chat/<id>`. Other hosts have no deep link.
+- Deep link: when no page handler takes the click (no `onclick` and no `click` listener, as with notifications posted through `registration.showNotification`) or the page instance is gone, a link derived from the notification's `data` opens in the Slot. While the originating webview is alive and shows the link's host, the link opens in-page (`history.pushState` plus a `popstate` event), with no reload; otherwise it loads through the routed-link path. `chat.google.com`: the space or DM id in `data` opens `https://chat.google.com/app/chat/<id>`. Other hosts have no deep link.
 
 ### 8.4 Unread state and badge
 

@@ -151,7 +151,23 @@ final class NotificationBridge: NSObject {
                 }
                 let handled = if case .success(let value) = result { value as? String == "handled" } else { false }
                 log.debug("Notification click: \(String(describing: result), privacy: .public), deep link \(deepLink?.absoluteString ?? "none", privacy: .public)")
-                if !handled, let deepLink { self?.openURL(slotId, deepLink) }
+                if !handled, let deepLink { self?.openInPage(deepLink, webView: originWebView, slotId: slotId) }
+            }
+        }
+    }
+
+    /// Routes the deep link inside the live single-page app, so the page does not reload; loads it when the
+    /// webview shows another host.
+    private func openInPage(_ deepLink: URL, webView: WKWebView, slotId: UUID) {
+        guard webView.url?.host() == deepLink.host() else { return openURL(slotId, deepLink) }
+        webView.callAsyncJavaScript(
+            "history.pushState(null, '', url); dispatchEvent(new PopStateEvent('popstate', { state: null }))",
+            arguments: ["url": deepLink.absoluteString], in: nil, in: .page
+        ) { [weak self] result in
+            MainActor.assumeIsolated {
+                guard case .failure(let error) = result else { return }
+                log.debug("In-page deep link failed: \(error.localizedDescription, privacy: .public)")
+                self?.openURL(slotId, deepLink)
             }
         }
     }

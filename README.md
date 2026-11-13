@@ -184,7 +184,7 @@ git tag v0.3.0 && git push origin v0.3.0
 - The app is ad-hoc signed and not notarized, so every download needs the quarantine step above.
 - No passkeys or security keys.
 - Notifications and unread badges come only from loaded Slots.
-- Opening a Chat conversation from a notification reloads the Chat Slot.
+- Opening a Chat conversation from a notification reloads the Chat Slot only when its page is no longer loaded.
 - Calls and huddles (Meet, Chat): use the browser.
 - Google may block sign-in inside embedded web views at any time.
 
