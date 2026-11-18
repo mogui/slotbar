@@ -6,11 +6,12 @@ let package = Package(
     platforms: [.macOS(.v14)],
     dependencies: [
         .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", from: "1.9.4"),
+        .package(url: "https://github.com/migueldeicaza/SwiftTerm", from: "1.2.0"),
     ],
     targets: [
         .executableTarget(
             name: "Slotbar",
-            dependencies: ["KeyboardShortcuts"],
+            dependencies: ["KeyboardShortcuts", "SwiftTerm"],
             path: "Sources/Slotbar",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),

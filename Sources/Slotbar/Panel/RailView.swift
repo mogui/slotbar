@@ -1,11 +1,11 @@
 import AppKit
 
-/// Strip on the Panel's outer side: one icon per Slot, then the gear (SPEC 4.4).
+/// Strip on the Panel's outer side: one icon per Slot, the Terminal while on, then the gear (SPEC 4.4).
 @MainActor
 final class RailView: NSView {
     static let thickness: CGFloat = 44
 
-    var onSelect: ((UUID) -> Void)?
+    var onSelect: ((PanelView) -> Void)?
     var onAction: ((UUID, SlotAction) -> Void)?
     /// The right-click "Notifications" check item (a Settings edit, SPEC 4.4).
     var onToggleNotifications: ((UUID) -> Void)?
@@ -57,27 +57,36 @@ final class RailView: NSView {
         stack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         for (index, item) in items.enumerated() {
             let button: NSButton
-            if let favicon = icon(item.slotId) {
-                button = faviconButton(favicon)
-            } else {
-                button = iconButton(symbol: "globe", tint: .secondaryLabelColor)
+            switch item.view {
+            case .terminal:
+                button = iconButton(symbol: "terminal", tint: .secondaryLabelColor)
+            case .slot(let id):
+                if let favicon = icon(id) {
+                    button = faviconButton(favicon)
+                } else {
+                    button = iconButton(symbol: "globe", tint: .secondaryLabelColor)
+                }
+                let menu = Menus.slotMenu(notifications: item.notifications)
+                for menuItem in menu.items {
+                    menuItem.target = self
+                    menuItem.tag = index
+                }
+                button.menu = menu
             }
-            addProfileBar(item.color.nsColor, to: button)
+            if let color = item.color { addProfileBar(color.nsColor, to: button) }
             button.tag = index
             button.target = self
             button.action = #selector(iconClicked(_:))
             button.toolTip = item.tooltip
             button.wantsLayer = true
             button.layer?.cornerRadius = 7
-            let menu = Menus.slotMenu(notifications: item.notifications)
-            for menuItem in menu.items {
-                menuItem.target = self
-                menuItem.tag = index
-            }
-            button.menu = menu
             button.layer?.backgroundColor = item.isActive
                 ? NSColor.controlAccentColor.withAlphaComponent(0.25).cgColor : nil
             if let badge = item.badge { addCapsule(badge, to: button) }
+            if item.bell {
+                addBellDot(to: button)
+                button.setAccessibilityLabel("Terminal, bell")
+            }
             stack.addArrangedSubview(button)
         }
         let gear = iconButton(symbol: "gearshape", tint: .secondaryLabelColor)
@@ -152,8 +161,24 @@ final class RailView: NSView {
         ])
     }
 
+    /// Accent dot over the Terminal icon's top trailing corner (Terminal spec, bell dot).
+    private func addBellDot(to button: NSButton) {
+        let dot = NSView()
+        dot.wantsLayer = true
+        dot.layer?.backgroundColor = NSColor.controlAccentColor.cgColor
+        dot.layer?.cornerRadius = 3
+        dot.translatesAutoresizingMaskIntoConstraints = false
+        button.addSubview(dot)
+        NSLayoutConstraint.activate([
+            dot.widthAnchor.constraint(equalToConstant: 6),
+            dot.heightAnchor.constraint(equalToConstant: 6),
+            dot.topAnchor.constraint(equalTo: button.topAnchor, constant: 4),
+            dot.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -4),
+        ])
+    }
+
     @objc private func iconClicked(_ sender: NSButton) {
-        onSelect?(items[sender.tag].slotId)
+        onSelect?(items[sender.tag].view)
     }
 
     @objc func goHome(_ sender: NSMenuItem) { send(.goHome, sender) }
@@ -168,6 +193,7 @@ final class RailView: NSView {
     }
 
     private func slotId(of sender: NSMenuItem) -> UUID? {
-        items.indices.contains(sender.tag) ? items[sender.tag].slotId : nil
+        guard items.indices.contains(sender.tag), case .slot(let id) = items[sender.tag].view else { return nil }
+        return id
     }
 }

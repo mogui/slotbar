@@ -7,28 +7,31 @@ final class SettingsPane {
     private let hosting: NSHostingController<SettingsView>
 
     init(store: SettingsStore, hotkey: Hotkey?, openAtLogin: OpenAtLogin, favicons: FaviconCache,
-         deleteProfile: @escaping (UUID) -> Void) {
+         deleteProfile: @escaping (UUID) -> Void, confirmTerminalOff: @escaping () -> Bool) {
         hosting = NSHostingController(rootView: SettingsView(
-            store: store, hotkey: hotkey, openAtLogin: openAtLogin, favicons: favicons, deleteProfile: deleteProfile))
+            store: store, hotkey: hotkey, openAtLogin: openAtLogin, favicons: favicons, deleteProfile: deleteProfile,
+            confirmTerminalOff: confirmTerminalOff))
         hosting.sizingOptions = []
     }
 
     var view: NSView { hosting.view }
 }
 
-/// General, Profiles and Slots in a centered column of at most 640 pt.
+/// General, Profiles, Slots and Terminal in a centered column of at most 640 pt.
 struct SettingsView: View {
     let store: SettingsStore
     let hotkey: Hotkey?
     let openAtLogin: OpenAtLogin
     let favicons: FaviconCache
     let deleteProfile: (UUID) -> Void
+    let confirmTerminalOff: () -> Bool
 
     var body: some View {
         Form {
             GeneralView(store: store, hotkey: hotkey, openAtLogin: openAtLogin)
             ProfilesView(store: store, deleteProfile: deleteProfile)
             SlotsView(store: store, favicons: favicons)
+            TerminalSettingsView(store: store, confirmTurnOff: confirmTerminalOff)
         }
         .formStyle(.grouped)
         .frame(maxWidth: 640)

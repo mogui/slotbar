@@ -45,4 +45,26 @@ import Testing
         _ = toggle.statusMouseUp()
         #expect(toggle.shouldAutoHide(enabled: true, newKeyWindowIsSlotbars: false))
     }
+
+    @Test func terminalHotkeyOnHiddenPanelShowsTheTerminal() {
+        #expect(PanelToggle().terminalToggle(isVisible: false, isKey: false, terminalShown: false) == .show)
+    }
+
+    @Test func terminalHotkeyOnASlotSwitchesToTheTerminal() {
+        #expect(PanelToggle().terminalToggle(isVisible: true, isKey: true, terminalShown: false) == .show)
+        #expect(PanelToggle().terminalToggle(isVisible: true, isKey: false, terminalShown: false) == .show)
+    }
+
+    @Test func terminalHotkeyOnSettingsSwitchesToTheTerminal() {
+        // Settings shown: the Terminal is not the shown view even when it was the last active one.
+        #expect(PanelToggle().terminalToggle(isVisible: true, isKey: true, terminalShown: false) == .show)
+    }
+
+    @Test func terminalHotkeyOnTerminalNotKeyMakesKey() {
+        #expect(PanelToggle().terminalToggle(isVisible: true, isKey: false, terminalShown: true) == .makeKey)
+    }
+
+    @Test func terminalHotkeyOnKeyTerminalHides() {
+        #expect(PanelToggle().terminalToggle(isVisible: true, isKey: true, terminalShown: true) == .hide)
+    }
 }

@@ -13,7 +13,7 @@ struct GeneralView: View {
     var body: some View {
         Section("General") {
             LabeledContent("Global hotkey") {
-                KeyboardShortcuts.Recorder(for: .togglePanel)
+                HotkeyRecorder(name: .togglePanel, other: .toggleTerminal, otherLabel: "Terminal hotkey")
             }
             if hotkey?.isUnavailable == true {
                 Label("This shortcut could not be registered. Choose another one.",

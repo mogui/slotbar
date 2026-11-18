@@ -5,6 +5,8 @@ struct Settings: Codable, Equatable, Sendable {
     var general: General
     var profiles: [Profile]
     var slots: [Slot]
+    /// Optional key, absent in files written before the Terminal existed (Terminal spec, Data model).
+    var terminal = TerminalSettings()
 
     func profile(for slot: Slot) -> Profile? {
         profiles.first { $0.id == slot.profileId }
@@ -14,6 +16,61 @@ struct Settings: Codable, Equatable, Sendable {
     mutating func toggleNotifications(slot id: UUID) {
         guard let index = slots.firstIndex(where: { $0.id == id }) else { return }
         slots[index].notifications.toggle()
+    }
+}
+
+extension Settings {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try c.decode(Int.self, forKey: .schemaVersion)
+        general = try c.decode(General.self, forKey: .general)
+        profiles = try c.decode([Profile].self, forKey: .profiles)
+        slots = try c.decode([Slot].self, forKey: .slots)
+        terminal = try c.decodeIfPresent(TerminalSettings.self, forKey: .terminal) ?? TerminalSettings()
+    }
+}
+
+/// The Terminal's persisted settings; every key is optional and falls back to its default.
+struct TerminalSettings: Codable, Equatable, Sendable {
+    enum Theme: String, Codable, CaseIterable, Sendable {
+        case system, solarizedLight, solarizedDark, dracula, nord
+    }
+
+    static let fontSizeRange = 9.0...36.0
+
+    var enabled = false
+    var theme = Theme.system
+    var fontSize = 13.0
+    /// nil means `$SHELL`.
+    var shellPath: String?
+    /// nil means the home directory; a leading `~` expands to home.
+    var startDirectory: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case enabled, theme, fontSize, shellPath, startDirectory
+    }
+
+    // Null shell and directory are written as explicit nulls, like a Slot's `label`.
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(enabled, forKey: .enabled)
+        try c.encode(theme, forKey: .theme)
+        try c.encode(fontSize, forKey: .fontSize)
+        try c.encode(shellPath, forKey: .shellPath)
+        try c.encode(startDirectory, forKey: .startDirectory)
+    }
+}
+
+extension TerminalSettings {
+    /// A missing or mistyped key reads as its default instead of making the whole file unreadable.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        enabled = (try? c.decodeIfPresent(Bool.self, forKey: .enabled)) ?? false
+        theme = (try? c.decodeIfPresent(Theme.self, forKey: .theme)) ?? .system
+        let size = (try? c.decodeIfPresent(Double.self, forKey: .fontSize)) ?? 13
+        fontSize = min(max(size, Self.fontSizeRange.lowerBound), Self.fontSizeRange.upperBound)
+        shellPath = try? c.decodeIfPresent(String.self, forKey: .shellPath)
+        startDirectory = try? c.decodeIfPresent(String.self, forKey: .startDirectory)
     }
 }
 

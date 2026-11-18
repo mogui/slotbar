@@ -11,11 +11,11 @@ Sources: [Choose the stack](https://github.com/mogui/slotbar/issues/8), [RAM foo
 | Language / UI | Swift 6 (language mode 6), AppKit, WKWebView. |
 | SwiftUI | Only for the content of Settings, hosted in the Panel via `NSHostingController`. There is no `MenuBarExtra` and no `Settings` scene. |
 | Minimum macOS | 14 Sonoma (`WKWebsiteDataStore(forIdentifier:)`). Tested on 26.x. 14 and 15 are best effort, and OS-version branches are added only for reported bugs. |
-| Dependencies | Exactly one: [`sindresorhus/KeyboardShortcuts`](https://github.com/sindresorhus/KeyboardShortcuts) (Carbon `RegisterEventHotKey` + recorder UI), via SwiftPM. |
+| Dependencies | Two, via SwiftPM: [`sindresorhus/KeyboardShortcuts`](https://github.com/sindresorhus/KeyboardShortcuts) (Carbon `RegisterEventHotKey` + recorder UI) and [`migueldeicaza/SwiftTerm`](https://github.com/migueldeicaza/SwiftTerm) (MIT; terminal emulation and pty for the **Terminal**, section 4.8). SwiftTerm builds as a dependency in its own language mode; the `Slotbar` target stays in Swift 6. |
 | User agent | Hardcoded desktop Firefox-on-macOS UA set as `customUserAgent` on every webview (Slots and Child windows): `Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:<V>.0) Gecko/20100101 Firefox/<V>.0`, where `<V>` is the current Firefox release at build time and is bumped with releases. Hidden override: `defaults write io.github.mogui.slotbar UserAgent "<string>"`, read at launch; empty or missing uses the constant. No Settings field. |
 | Web Inspector | `isInspectable = true` in Debug builds (`#if DEBUG`), `false` in Release. Compile time only. |
 | Passkeys / security keys | Unsupported (unsigned app lacks the browser WebAuthn entitlement). Users sign in with password + 2FA via "Try another way". |
-| Permissions | None. No Accessibility, no Input Monitoring, no App Sandbox, no entitlements, no hardened runtime. |
+| Permissions | None. No Accessibility, no Input Monitoring, no App Sandbox, no entitlements, no hardened runtime. Spawning Terminal shells needs none of them. The Terminal adds no network listener and no helper executable. |
 
 ## 2. Architecture and modules
 
@@ -32,14 +32,15 @@ SwiftPM package, one executable target `Slotbar` (`swift-tools-version: 6.0`, `p
 | `Web/` | `WebViewFactory` (configuration, UA, user scripts, inspector flag), `NavigationRouter` (link routing), `ChildWindowController`, `DownloadManager`, `UIDelegate` (JS dialogs, file pickers, media capture). |
 | `Notifications/` | `NotificationBridge` (`WKScriptMessageHandlerWithReply` to `UNUserNotificationCenter`), de-dup, click routing. |
 | `Unread/` | `UnreadAdapter` protocol and the Gmail, Chat and title-count adapters, `BadgeAggregator`, status item rendering. |
-| `Settings/` | SwiftUI views for General, Profiles, Slots. |
+| `Terminal/` | `TerminalController` (the Terminal's tabs, one SwiftTerm local process view per tab), shell launch (login shell, start directory, environment), the Terminal session model. |
+| `Settings/` | SwiftUI views for General, Profiles, Slots, Terminal. |
 
 `Resources/` at the package root (copied by `scripts/build-app.sh`, loaded from `Bundle.main`, no SwiftPM `resources:`): `Info.plist`, `AppIcon.icns` and its source PNG, the status bar template image, `notification-shim.js`, `unread-gmail.js`, `unread-chat.js`, `unread-title.js`, `favicon.js`.
 
 Test target `SlotbarTests` (`Tests/SlotbarTests/`, `@testable import Slotbar`): pure-logic unit tests for `NavigationRouter`, `BadgeAggregator`, notification de-dup and `SettingsStore` decoding, run locally with `swift test`. If `@testable import` of the executable target fails with the runner's toolchain, the test target is dropped (no library target is added).
 
 Runtime ownership:
-- `AppDelegate` owns `SettingsStore`, `ProfileStores`, `PanelController`, `NotificationBridge`, `BadgeAggregator` and one `SlotController` per Slot, in list order.
+- `AppDelegate` owns `SettingsStore`, `ProfileStores`, `PanelController`, `NotificationBridge`, `BadgeAggregator`, one `SlotController` per Slot, in list order, and the `TerminalController` while the Terminal is on (created when it is turned on, destroyed when it is turned off).
 - A `SlotController` owns its `WKWebView` (when loaded) and its Child windows. All webviews of one Profile share that Profile's `WKWebsiteDataStore`.
 - Settings changes flow from `SettingsStore` to the controllers. The Settings UI and the Rail menu write through `SettingsStore` only.
 
@@ -73,6 +74,14 @@ Sources: [Settings data model and UI](https://github.com/mogui/slotbar/issues/10
 - `showInDock`: bool, default `false`. Optional key; a file without it reads as `false`.
 - `panelDepth`: `{ horizontal, vertical }` fractions of the screen dimension. `horizontal` is the width for left/right (default `0.45`), `vertical` is the height for top/bottom (default `0.70`).
 
+**Terminal** (`terminal`, optional object; a file without it reads as the Terminal off with the defaults below; each missing key reads as its default)
+- `enabled`: bool, default `false`.
+- `theme`: `system | solarizedLight | solarizedDark | dracula | nord`, default `system`. An unknown value reads as `system`; the rest of the file is kept.
+- `fontSize`: number, default `13`, range 9-36. A value outside the range is clamped to it.
+- `shellPath`: string or `null`. `null` means `$SHELL`, then `/bin/zsh` when `$SHELL` is missing or empty.
+- `startDirectory`: string or `null`. `null` means the home directory; a leading `~` or `~/` expands to home (`~user` does not).
+- The encoder always writes the object, with `null` for an unset `shellPath` or `startDirectory`. `schemaVersion` stays `1`.
+
 ### 3.2 Storage
 
 | What | Where |
@@ -80,10 +89,12 @@ Sources: [Settings data model and UI](https://github.com/mogui/slotbar/issues/10
 | Settings | `~/Library/Application Support/Slotbar/settings.json` |
 | Favicon cache | `~/Library/Application Support/Slotbar/favicons/<slot-id>.png` |
 | Global hotkey | `UserDefaults`, owned by KeyboardShortcuts, shortcut name `togglePanel` |
+| Terminal hotkey | `UserDefaults`, owned by KeyboardShortcuts, shortcut name `toggleTerminal` |
 | UA override | `UserDefaults` key `UserAgent` (hidden) |
 | Pending store deletions | `UserDefaults` key `PendingStoreDeletions` (array of Profile UUID strings) |
 | Profile session data | WebKit, `~/Library/WebKit/io.github.mogui.slotbar/WebsiteDataStore/<UUID>/` |
-| Last URL per Slot, last active Slot, crash counters, Unread state | Memory only |
+| Last URL per Slot, last active view (Slot or Terminal), crash counters, Unread state | Memory only |
+| Terminal tabs, titles, scrollback, bell flags, live font size | Memory only |
 | Notification authorization | Never stored; read from `UNUserNotificationCenter` |
 
 Rules:
@@ -151,6 +162,17 @@ Rules:
           "notifications": { "type": "boolean", "default": true }
         }
       }
+    },
+    "terminal": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "theme": { "enum": ["system", "solarizedLight", "solarizedDark", "dracula", "nord"], "default": "system" },
+        "fontSize": { "type": "number", "minimum": 9, "maximum": 36, "default": 13 },
+        "shellPath": { "type": ["string", "null"], "default": null },
+        "startDirectory": { "type": ["string", "null"], "default": null }
+      }
     }
   }
 }
@@ -174,7 +196,8 @@ Example (first-run preset):
     { "id": "A1...", "keepAlive": true, "label": null, "notifications": true, "profileId": "6F1C...", "url": "https://mail.google.com/" },
     { "id": "B2...", "keepAlive": false, "label": null, "notifications": true, "profileId": "6F1C...", "url": "https://calendar.google.com/" },
     { "id": "C3...", "keepAlive": true, "label": null, "notifications": true, "profileId": "6F1C...", "url": "https://chat.google.com/" }
-  ]
+  ],
+  "terminal": { "enabled": false, "fontSize": 13, "shellPath": null, "startDirectory": null, "theme": "system" }
 }
 ```
 
@@ -194,7 +217,7 @@ Sources: [Panel behaviour](https://github.com/mogui/slotbar/issues/9), [Panel me
 - `collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]`. Together with `LSUIElement = true` this lets the Panel float over full-screen apps.
 - Level `.popUpMenu` while sliding, `.floating` once shown.
 - `hidesOnDeactivate = false`. At launch the Panel is hidden.
-- Content: the Rail on the outer side (next to the screen edge) and the active Slot's webview filling the rest.
+- Content: the Rail on the outer side (next to the screen edge) and the active view filling the rest: the active Slot's webview, Settings, or the Terminal's active tab.
 
 ### 4.2 Placement
 
@@ -212,13 +235,14 @@ Sources: [Panel behaviour](https://github.com/mogui/slotbar/issues/9), [Panel me
 ### 4.4 Rail
 
 - An always-visible ~44 pt strip on the Panel's outer side: vertical for left/right edges, horizontal for top/bottom.
-- One icon per Slot in list order, then a gear button at the end that opens Settings in the Panel; the gear is highlighted while Settings is shown.
+- One icon per Slot in list order, then the Terminal icon while the Terminal is on, then a gear button at the end that opens Settings in the Panel; the gear is highlighted while Settings is shown.
 - Each icon: the Slot's favicon (a gray globe while there is none), a Profile-color bar along its left side, and the unread badge for that Slot alone (section 8.4). The active Slot is highlighted.
 - Tooltip: the Slot label, plus `Cmd+N` for the first nine Slots.
 - Click: makes that Slot active (loading it if Unloaded).
 - Right-click menu: Go home, Open current page in browser, Reload, separator, Notifications (check item bound to the Slot's `notifications` field, saved immediately).
 - **Unloaded** Slots look the same as loaded ones (last favicon, no badge). The crash placeholder (section 6.4) is the only lifecycle UI.
 - Favicon source: `favicon.js` (document start, main frame) reports the best `link[rel~="icon"]` URL; if none, `/favicon.ico` on the Home host. The image is fetched through the Slot's data store, scaled to 64x64 px, and cached to `favicons/<slot-id>.png`. It is refreshed when the icon link changes, except for Slots whose Home host is `chat.google.com`: they keep the first icon seen, because Chat swaps dot / no-dot favicon variants that feed only the Unread state. A Slot with no cached icon shows SF Symbol `globe` tinted with the Profile color. A Slot's cache file is deleted with the Slot and when its URL or Profile changes.
+- Terminal icon: SF Symbol `terminal`, no Profile-color bar, no unread badge, highlighted while the Terminal is the active view, a dot while any Terminal tab has its bell flag (section 4.8). Tooltip "Terminal" plus the Terminal hotkey. Click: makes the Terminal the active view. No right-click menu. It is not a Slot: `Cmd+1..9` never reach it.
 - With no Slots, the Panel shows only the Rail gear and a centered empty state "No Slots" with an "Open Settings" button that opens Settings.
 
 ### 4.5 Show, hide, toggle
@@ -228,7 +252,13 @@ Sources: [Panel behaviour](https://github.com/mogui/slotbar/issues/9), [Panel me
   - Shown but not key: make key, do not hide.
   - Panel or a Child window is key: hide.
 - The status icon click records Panel visibility at mouse-down, so a click never hides and re-shows (the resign-key caused by the click itself is ignored).
-- Show makes the last active Slot visible. It is held in memory; the first show after launch, or a show after the active Slot was deleted, uses Slot 1.
+- Show makes the last active view visible: a Slot or the Terminal. It is held in memory; the first show after launch, a show after the active Slot was deleted, and a show after the Terminal was turned off while it was the last active view use Slot 1. Turning the Terminal off while it is shown switches to Slot 1.
+- Terminal hotkey (KeyboardShortcuts name `toggleTerminal`, default `Ctrl+Option+T`, registered only while the Terminal is on):
+  - Panel hidden: show it on the Terminal.
+  - Panel shown on a Slot or Settings: switch to the Terminal and make key.
+  - Panel shown on the Terminal but not key: make key.
+  - Panel shown on the Terminal and key: hide.
+- Whenever the Terminal becomes visible, its active tab becomes first responder.
 - A notification click and a routed link use the same show path, with a given target Slot.
 - Hide: order out the Panel and its Child windows, then reactivate the previously frontmost app.
 - Animation: 0.2 s slide from just outside the visible frame on the chosen edge (ease-out on show, ease-in on hide), via `NSAnimationContext` and `window.animator().setFrame`. A hide during a slide reverses from the current position. With Reduce motion on (`NSWorkspace.shared.accessibilityDisplayShouldReduceMotion`), a ~0.15 s fade replaces the slide. No setting.
@@ -254,6 +284,22 @@ Sources: [Panel behaviour](https://github.com/mogui/slotbar/issues/9), [Link rou
 - Title: `<page title> - <Profile name>`.
 - Closed when its Slot is unloaded, crashes or is deleted, and when the page calls `window.close()`. `Cmd+W` closes it.
 - Its notifications belong to the owning Slot. Its own page crash closes only that window and does not count toward the Slot's crash cap.
+
+### 4.8 Terminal
+
+Sources: [Terminal spec](terminal-spec.md)
+
+- The **Terminal** is an active view of the Panel separate from the Slots: no URL, no Profile, no Keep-alive, no Notifications, not in the Slot list. It is never unloaded by the Slot lifecycle rules (section 6) or memory pressure; shells keep running while the Panel is hidden.
+- It holds one or more **Terminal tabs**. A pure session model owns the tab list, the active tab, each tab's title and bell flag; it takes events (open, select, next/previous, close requested, close confirmed, shell exited, bell, Terminal shown/hidden, Terminal turned off) and returns effects for `TerminalController` (spawn a shell, terminate a shell, ask for confirmation, hide the Panel).
+  - It starts with one tab and never holds zero tabs while the Terminal is on. A relaunch starts with one fresh tab.
+  - Close requested on a tab whose pty foreground process group differs from the shell's process id ("busy") asks for confirmation; otherwise the tab closes.
+  - Close on the last tab replaces it with a fresh tab and hides the Panel. Shell exit (`exit`, `Ctrl+D`) closes its tab; on the last tab it is replaced with a fresh tab and the Panel stays.
+  - A bell on a tab that is not visible (another tab active, or the Terminal not shown) sets its flag; the flag clears when the tab becomes visible. The bell raises no macOS notification and no status bar badge.
+- Tab bar: shown only with two or more tabs. Each tab shows the title the shell sets; click selects, a close button appears on hover, a double-click on the empty part of the bar opens a new tab, a bell dot marks flagged tabs.
+- Shell: a login shell (argv[0] prefixed with `-`) from `shellPath` or `$SHELL`, in `startDirectory` or home, with the app environment plus `TERM=xterm-256color`, and `LANG=en_US.UTF-8` when the app environment has no `LANG`. Settings changes apply only to tabs spawned afterwards. A shell that fails to start leaves the tab showing the error and "Press Return to try again"; Return respawns with the current settings. A shell that exits within 2 s of its spawn failed to start when its exit code is not 0, it was killed by a signal, or it ran in the last tab; any other exit is a shell exit.
+- Turning the Terminal off or quitting with any busy tab asks for one confirmation listing the busy tabs' titles; on confirm, all shells are terminated. With every tab idle at the prompt, both happen without confirmation.
+- Appearance: SF Mono at the configured size, blinking block cursor, 10,000 lines of scrollback per tab. Themes are built-in palettes (16 ANSI colors, foreground, background, cursor, selection); `system` follows the effective light or dark appearance live. Rows and columns follow the Panel size, on every edge.
+- `Cmd`-click on a URL in the output opens it in the default browser through `NSWorkspace`, bypassing link routing (section 7).
 
 ## 5. Slots and Profiles
 
@@ -432,23 +478,36 @@ Sources: [Keyboard input in a non-activating Panel](https://github.com/mogui/slo
 | `Cmd+R` | Reload (active Slot). |
 | `Cmd+W` | Hide the Panel (closes nothing). |
 
+- Matching takes whether the Terminal is the active view. With the Terminal active:
+
+| Keys | Action |
+|---|---|
+| `Cmd+1` ... `Cmd+9` | Make Slot N active (unchanged). |
+| `Cmd+T` | New Terminal tab. |
+| `Cmd+W` | Close the current tab (section 4.8; on the last tab: fresh tab and hide the Panel). |
+| `Cmd+Shift+[` / `Cmd+Shift+]` | Previous / next tab. Also matched by key position (the US `[` / `]` keys), so layouts where those keys type other characters work. |
+| `Cmd+K` | Clear the current tab's screen and scrollback; a tab that is not busy also sends `Ctrl+L` to its shell to redraw the prompt. |
+| `Cmd+=` (also `Cmd++`, with or without Shift) / `Cmd+-` / `Cmd+0` | Font larger / smaller / back to the Settings size, on all tabs, not saved. |
+| `Cmd+R`, `Cmd+Shift+H`, `Cmd+Shift+O` | Consumed, no action. |
+
+- In the Terminal, `Cmd+C` copies the selection (selecting never copies), `Cmd+V` pastes with bracketed paste when the program enables it, `Cmd+A` selects the whole scrollback. Option composes characters as in macOS; it is not a Meta key.
 - In a Child window, `Cmd+W` closes that window. Other keys go to the page.
 - Esc is not bound; pages own it.
 - Main menu (`NSApp.mainMenu`, visible only with Show in Dock): an App menu with About Slotbar, Settings... (`Cmd+,`), Quit Slotbar (`Cmd+Q`), and an Edit menu with Undo (`Cmd+Z`), Redo (`Cmd+Shift+Z`), Cut, Copy, Paste, Select All, using the standard first-responder selectors. Without it, `Cmd+A/C/V/Z` do nothing in web fields.
-- Global hotkey: KeyboardShortcuts name `togglePanel`, default `Ctrl+Option+S`, recordable in Settings > General. No per-Slot hotkeys. When registration fails, Settings shows an inline warning and the status menu shows "Hotkey unavailable"; the icon click still works.
+- Global hotkey: KeyboardShortcuts name `togglePanel`, default `Ctrl+Option+S`, recordable in Settings > General. No per-Slot hotkeys. Terminal hotkey: `toggleTerminal`, default `Ctrl+Option+T`, recordable in Settings > Terminal, registered only while the Terminal is on (section 4.5). When the Panel hotkey's registration fails, Settings shows an inline warning and the status menu shows "Hotkey unavailable"; the icon click still works. The Terminal hotkey has no registration warning.
 
 ## 10. Settings UI
 
 Sources: [Settings data model and UI](https://github.com/mogui/slotbar/issues/10), [Panel behaviour](https://github.com/mogui/slotbar/issues/9), [Notification behaviour](https://github.com/mogui/slotbar/issues/12), [Build and release pipeline](https://github.com/mogui/slotbar/issues/16)
 
-- Settings is shown inside the Panel, in the Slot area in place of the active Slot: one scrolling page, a grouped SwiftUI `Form` in a centered column of at most 640 pt, with the sections General, Profiles, Slots. Opened by `Cmd+,`, the status menu, the Rail gear and the empty-state button; opening it shows the Panel. Clicking a Slot icon or a `Cmd+1...9` shortcut returns to that Slot; the next show of the Panel shows a Slot. While Settings is shown, no Slot counts as on screen.
+- Settings is shown inside the Panel, in the Slot area in place of the active Slot: one scrolling page, a grouped SwiftUI `Form` in a centered column of at most 640 pt, with the sections General, Profiles, Slots, Terminal. Opened by `Cmd+,`, the status menu, the Rail gear and the empty-state button; opening it shows the Panel. Clicking a Slot icon or a `Cmd+1...9` shortcut returns to that Slot; the next show of the Panel shows the last active view (a Slot or the Terminal). While Settings is shown, no Slot counts as on screen.
 - Every edit is saved immediately to `settings.json` and applied live. A change made from the Rail menu shows live in Settings.
 
 ### 10.1 General
 
 | Row | Behaviour |
 |---|---|
-| Global hotkey | `KeyboardShortcuts.Recorder` for `togglePanel`. Inline warning when registration failed. |
+| Global hotkey | `KeyboardShortcuts.Recorder` for `togglePanel`. Inline warning when registration failed. Recording the Terminal hotkey's shortcut clears it and shows "Already used by the Terminal hotkey" until the next change. |
 | Panel edge | Segmented control Left / Right / Top / Bottom, default Right. Applies at the next show and keeps the depth. |
 | Hide when Slotbar loses focus | Switch, on. |
 | Show in Dock | Switch, off, with the hint "Switch to Slotbar with Cmd-Tab". Section 4.6. |
@@ -467,6 +526,19 @@ Sources: [Settings data model and UI](https://github.com/mogui/slotbar/issues/10
 - A "+" button in the section header opens a sheet with URL (required) and Profile (popup, default the first Profile). The URL must parse as absolute `http` or `https`; a bare host gets `https://` prepended. The new Slot is appended with Keep-alive on, Notifications on and `label: null`. "+" is disabled and the section shows "Add a Profile first" when there are no Profiles.
 - Editing the URL or the Profile keeps the label and position, closes the Slot's Child windows, clears its reopen URL and deletes its cached favicon. A URL change resets the Home host, and routing uses the new one immediately. A loaded Slot reloads at the new URL (a Profile change recreates its webview on the new Profile's store). An Unloaded Slot is only updated in the model and loads the new URL on next open.
 - Delete removes the Slot with no confirmation (section 5).
+
+### 10.4 Terminal
+
+| Row | Behaviour |
+|---|---|
+| Enable Terminal | Switch, off. On creates the Terminal with one tab, adds the Rail icon and registers the Terminal hotkey. Off asks for confirmation when a tab is busy (section 4.8), then terminates all shells, removes the Rail icon and unregisters the hotkey. |
+| Terminal hotkey | `KeyboardShortcuts.Recorder` for `toggleTerminal`. Recording the Panel hotkey's shortcut clears it and shows "Already used by the Panel hotkey" until the next change. |
+| Theme | Picker: Follow system, Solarized Light, Solarized Dark, Dracula, Nord. |
+| Font size | Stepper, 9-36, default 13. |
+| Shell | Text field for `shellPath`, written on Return or when the field loses focus; placeholder shows the current `$SHELL`; empty writes `null`. |
+| Starting directory | Text field for `startDirectory`, written on Return or when the field loses focus; placeholder `~`; empty writes `null`. |
+
+All rows except the switch are disabled while the Terminal is off. Shell and directory changes apply to new tabs only.
 
 ## 11. First-run preset
 
@@ -490,7 +562,7 @@ Sources: [Build and release pipeline](https://github.com/mogui/slotbar/issues/16
 
 ### 12.1 Package and toolchain
 
-- `Package.swift`: `swift-tools-version: 6.0`, Swift 6 language mode, `platforms: [.macOS(.v14)]`, one executable target `Slotbar`, the test target `SlotbarTests` (section 2), KeyboardShortcuts as the only dependency. CI runs no tests.
+- `Package.swift`: `swift-tools-version: 6.0`, Swift 6 language mode, `platforms: [.macOS(.v14)]`, one executable target `Slotbar`, the test target `SlotbarTests` (section 2), KeyboardShortcuts and SwiftTerm as the dependencies. CI runs no tests.
 - Toolchain: CI pins Xcode 26.3 via `DEVELOPER_DIR` (the newest on the `macos-15-intel` image; its default Xcode 16.4 fails on the Swift 6 concurrency checks).
 - Architectures: universal arm64 + x86_64: one `swift build --build-system swiftbuild -c release --arch <arch>` per arch, joined with `lipo -create` (a multi-arch `swift build` switches to the Xcode build system, which fails with Swift 6 on the CI runner image). x86_64 is dropped the first time the runner's Xcode refuses it. Intel is best effort.
 

@@ -13,19 +13,35 @@ import Testing
     let chat = slot("https://chat.google.com/")
 
     @Test func firstShowUsesSlot1() {
-        #expect(slotToShow(slots: [mail, calendar, chat], lastActive: nil) == mail.id)
+        #expect(viewToShow(slots: [mail, calendar, chat], lastActive: nil, terminalEnabled: false) == .slot(mail.id))
     }
 
     @Test func showRestoresLastActiveSlot() {
-        #expect(slotToShow(slots: [mail, calendar, chat], lastActive: chat.id) == chat.id)
+        #expect(viewToShow(slots: [mail, calendar, chat], lastActive: .slot(chat.id), terminalEnabled: false) == .slot(chat.id))
     }
 
     @Test func deletedLastActiveSlotFallsBackToSlot1() {
-        #expect(slotToShow(slots: [mail, calendar], lastActive: chat.id) == mail.id)
+        #expect(viewToShow(slots: [mail, calendar], lastActive: .slot(chat.id), terminalEnabled: true) == .slot(mail.id))
     }
 
     @Test func noSlotsShowsNothing() {
-        #expect(slotToShow(slots: [], lastActive: chat.id) == nil)
+        #expect(viewToShow(slots: [], lastActive: .slot(chat.id), terminalEnabled: false) == nil)
+    }
+
+    @Test func showRestoresTheTerminalWhileItIsEnabled() {
+        #expect(viewToShow(slots: [mail, chat], lastActive: .terminal, terminalEnabled: true) == .terminal)
+    }
+
+    @Test func terminalTurnedOffFallsBackToSlot1() {
+        #expect(viewToShow(slots: [mail, chat], lastActive: .terminal, terminalEnabled: false) == .slot(mail.id))
+    }
+
+    @Test func terminalTurnedOffWithNoSlotsShowsNothing() {
+        #expect(viewToShow(slots: [], lastActive: .terminal, terminalEnabled: false) == nil)
+    }
+
+    @Test func terminalStaysShownWithNoSlots() {
+        #expect(viewToShow(slots: [], lastActive: .terminal, terminalEnabled: true) == .terminal)
     }
 
     @Test func launchLoadsKeptAliveSlotsInListOrder() {

@@ -13,6 +13,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var favicons: FaviconCache?
     private let slotRegistry = SlotRegistry()
     private var memoryPressure: DispatchSourceMemoryPressure?
+    /// The Terminal while it is on; separate from the Slots, so Slot lifecycle and memory pressure never unload it.
+    private var terminal: TerminalController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Failed store removals are retried before any webview exists (SPEC 3.4).
@@ -32,11 +34,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let panel = PanelController(settingsStore: store, favicons: favicons)
         panel.onSlotAction = { [weak self] id, action in self?.perform(action, on: id) }
         panelController = panel
-        hotkey = Hotkey { panel.toggle() }
+        hotkey = Hotkey(onKeyDown: { panel.toggle() }, onTerminalKeyDown: { panel.toggleTerminal() })
         let openAtLogin = OpenAtLogin(service: MainAppLoginItem(), store: store)
         openAtLogin.healAtLaunch()
         panel.settingsPane = SettingsPane(store: store, hotkey: hotkey, openAtLogin: openAtLogin,
-                                          favicons: favicons, deleteProfile: { [weak self] id in self?.deleteProfile(id) })
+                                          favicons: favicons, deleteProfile: { [weak self] id in self?.deleteProfile(id) },
+                                          confirmTerminalOff: { [weak self] in self?.terminal?.confirmTurnOff() ?? true })
         notificationBridge.slotForWebView = { [weak self] webView in
             self?.slotRegistry.controller(owning: webView)?.slot
         }
@@ -90,8 +93,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let policy: NSApplication.ActivationPolicy = settings.general.showInDock ? .regular : .accessory
         if NSApp.activationPolicy() != policy { NSApp.setActivationPolicy(policy) }
         slotRegistry.apply(settings) { makeSlotController($0, favicons: favicons, panel: panelController) }
-        panelController.update(settings: settings, controllers: slotRegistry.controllers)
+        applyTerminal(settings.terminal.enabled)
+        terminal?.apply(settings.terminal)
+        hotkey?.setTerminalEnabled(settings.terminal.enabled)
+        panelController.update(settings: settings, controllers: slotRegistry.controllers, terminal: terminal)
         refreshBadges()
+    }
+
+    /// Creates the Terminal (one fresh tab) when turned on; terminates its shell and drops it when turned off.
+    private func applyTerminal(_ enabled: Bool) {
+        guard let settingsStore, enabled != (terminal != nil) else { return }
+        if enabled {
+            terminal = TerminalController(settingsStore: settingsStore)
+        } else {
+            terminal?.terminate()
+            terminal = nil
+        }
     }
 
     private func makeSlotController(_ slot: Slot, favicons: FaviconCache, panel: PanelController) -> SlotController {
@@ -178,6 +195,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidBecomeActive(_ notification: Notification) {
         guard settingsStore?.settings.general.showInDock == true else { return }
         panelController?.show()
+    }
+
+    /// Quit with a busy Terminal tab asks the turn-off confirmation; Cancel keeps Slotbar running.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        terminal?.confirmTurnOff() == false ? .terminateCancel : .terminateNow
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

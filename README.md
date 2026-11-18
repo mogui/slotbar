@@ -31,6 +31,7 @@
 - **Light on memory**: Slots without Keep-alive unload 5 minutes after you last looked at them.
 - **Links where they belong**: links on the Slot's host stay in Slotbar, links to another Slot of the same Profile open there, other hosts open in your default browser. `Cmd`-click does the opposite; right-click a link to choose.
 - **Optional Dock icon**: turn on Show in Dock to reach Slotbar with `Cmd+Tab`.
+- **Built-in Terminal**: turn it on in Settings > Terminal for a shell in the Panel, with tabs, its own hotkey `Ctrl+Option+T` and a Rail icon. Shells keep running while the Panel is hidden.
 
 ## How it compares
 
@@ -108,7 +109,7 @@ defaults delete io.github.mogui.slotbar UserAgent
 
 ### Rail
 
-The Rail is the strip on the Panel's outer side: one icon per Slot (favicon, Profile color bar, unread badge), then a gear that opens Settings. Click an icon to switch to that Slot; hover for its label and shortcut.
+The Rail is the strip on the Panel's outer side: one icon per Slot (favicon, Profile color bar, unread badge), the Terminal icon while the Terminal is on, then a gear that opens Settings. Click an icon to switch to that Slot; hover for its label and shortcut.
 
 Right-click a Slot icon for:
 
@@ -128,7 +129,10 @@ Right-click a Slot icon for:
 | `Cmd+R` | Reload (active Slot) |
 | `Cmd+W` | Hide the Panel; in a popup window, close that window |
 | `Cmd+,` | Settings |
+| `Ctrl+Option+T` | Show the Panel on the Terminal; hide it when the Terminal is already shown and focused (global, Terminal on; change it in Settings) |
 | `Cmd+Q` | Quit Slotbar |
+
+With the Terminal shown: `Cmd+T` new tab, `Cmd+W` close tab, `Cmd+Shift+[` / `Cmd+Shift+]` previous / next tab, `Cmd+K` clear, `Cmd+=` / `Cmd+-` / `Cmd+0` font size, `Cmd+C` / `Cmd+V` / `Cmd+A` copy, paste, select all, `Cmd`-click opens a URL in your browser. A tab whose shell exits closes. Closing a tab, turning the Terminal off or quitting asks first when a program is running.
 
 Esc is left to the page. If the global hotkey cannot be registered (for example because macOS already uses it), Settings shows a warning and the menu bar icon's right-click menu shows "Hotkey unavailable"; clicking the icon still works.
 
@@ -145,6 +149,7 @@ Settings opens inside the Panel (gear, `Cmd+,` or the menu bar icon's right-clic
 - **Slots**: add Slots with "+"; edit label, URL and Profile inline; use the "..." menu to move or delete a Slot. Per Slot:
   - **Keep-alive**: the Slot loads at launch and stays loaded. Without it, the Slot loads on first open and unloads 5 minutes after it was last shown (sooner under memory pressure).
   - **Notifications**: whether the Slot can post macOS notifications.
+- **Terminal**: Enable Terminal, Terminal hotkey, theme (Follow system, Solarized Light/Dark, Dracula, Nord), font size, shell (empty: your `$SHELL`) and starting directory (empty: home). Shell and directory apply to new tabs.
 
 ## Upgrade
 
