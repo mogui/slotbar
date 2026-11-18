@@ -23,3 +23,18 @@ func shellLaunch(shellPath: String?, startDirectory: String?, environment: [Stri
                        directory: directory,
                        environment: env.map { "\($0.key)=\($0.value)" })
 }
+
+/// Why a shell cannot start from these already-expanded paths, or nil when it can (Terminal spec, Terminal controller).
+func shellStartError(executable: String, directory: String) -> String? {
+    let files = FileManager.default
+    var isDirectory: ObjCBool = false
+    if !files.fileExists(atPath: executable, isDirectory: &isDirectory) {
+        return "Cannot start shell \(executable): no such file"
+    }
+    if isDirectory.boolValue { return "Cannot start shell \(executable): is a directory" }
+    if !files.isExecutableFile(atPath: executable) { return "Cannot start shell \(executable): not executable" }
+    if !files.fileExists(atPath: directory, isDirectory: &isDirectory) || !isDirectory.boolValue {
+        return "Starting directory \(directory) does not exist"
+    }
+    return nil
+}
