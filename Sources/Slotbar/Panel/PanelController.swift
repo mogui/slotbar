@@ -315,8 +315,8 @@ final class PanelController: NSObject {
         case .fontLarger: terminal?.changeFontSize(.larger)
         case .fontSmaller: terminal?.changeFontSize(.smaller)
         case .fontReset: terminal?.changeFontSize(.reset)
-        // shortcut: clear is consumed with no action until #45 wires it.
-        case .clear, .consume: break
+        case .clear: terminal?.clearActiveTab()
+        case .consume: break
         }
     }
 

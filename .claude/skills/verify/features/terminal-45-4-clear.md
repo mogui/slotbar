@@ -25,3 +25,5 @@ Preconditions: `V launch --terminal`, `V show`, click `Terminal`.
 ## Gotchas
 
 - `Cmd+K` must not send `clear` to the shell; the shell's history is untouched.
+- Built: the view gets `ESC[3J ESC[2J ESC[H` (local clear), then Ctrl+L (0x0C) goes to the shell only when the tab is not busy, so zsh redraws its prompt (typed text kept). While a program runs (e.g. `sleep 30`, `less`) the clear is local only: blank screen, nothing sent.
+- A tab showing the start-failure screen gets the local clear only.

@@ -102,6 +102,14 @@ import Testing
         Case(characters: "w", modifiers: [.command, .option], expected: nil),
         Case(characters: "k", modifiers: [.command, .control], expected: nil),
         Case(characters: "t", modifiers: [], expected: nil),
+        // Option composes characters (US 45): never a Panel shortcut, even on the US bracket key codes.
+        Case(characters: "2", modifiers: .option, expected: nil),
+        Case(characters: "5", modifiers: .option, expected: nil),
+        Case(characters: "e", modifiers: [.option, .shift], expected: nil),
+        Case(characters: "è", modifiers: .option, keyCode: 33, expected: nil),
+        Case(characters: "é", modifiers: [.option, .shift], keyCode: 33, expected: nil),
+        Case(characters: "+", modifiers: .option, keyCode: 30, expected: nil),
+        Case(characters: "*", modifiers: [.option, .shift], keyCode: 30, expected: nil),
     ]
 
     @Test(arguments: terminalUnbound)

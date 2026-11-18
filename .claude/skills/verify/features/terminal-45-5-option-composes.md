@@ -24,3 +24,4 @@ Preconditions: the Italian input source is active (ask the user to switch, or co
 
 - Synthetic key events carry key codes; the composed character depends on the active input source. The user's layout must be Italian for this recipe; never switch the input source without asking.
 - If `oc hotkey` cannot name `ò`/`à`/`è`, use their key codes per `oc hotkey --help`, or ask the user to type them.
+- Built: `optionAsMetaKey = false` per tab (SwiftTerm defaults to true). `Option+Left/Right` still move by word: SwiftTerm applies the macOS Option-arrow bindings regardless.

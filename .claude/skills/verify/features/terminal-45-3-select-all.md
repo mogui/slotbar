@@ -22,3 +22,4 @@ Preconditions: `V launch --terminal`, `V show`, click `Terminal`; back up the cl
 ## Gotchas
 
 - Depends on terminal-45-1 (`Cmd+C`) working.
+- Built: SwiftTerm's `selectAll:` via the hidden Edit menu; any key press clears the selection, so send `Cmd+C` right after `Cmd+A`.
