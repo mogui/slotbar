@@ -4,10 +4,10 @@ set -euo pipefail
 
 config="${1:-debug}"
 case "$config" in
-  debug) archs=() ;;
-  # One `swift build` per arch, joined with lipo: a multi-arch `swift build` switches to the Xcode build
-  # system, which fails with Swift 6 on some runner images.
-  release) archs=(arm64 x86_64) ;;
+  debug) arch_flags=() ;;
+  # One universal build: build tools (SwiftTerm's build-info generator) come out universal too, so they run
+  # on the build host. Per-arch builds compile them for the target arch, which an Intel runner cannot run.
+  release) arch_flags=(--arch arm64 --arch x86_64) ;;
   *) echo "usage: $0 [debug|release]" >&2; exit 2 ;;
 esac
 
@@ -21,21 +21,9 @@ app="build/Slotbar.app"
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 
-if [ ${#archs[@]} -eq 0 ]; then
-  "${build[@]}" -c debug
-  bin_dir="$("${build[@]}" -c debug --show-bin-path)"
-  cp "$bin_dir/Slotbar" "$app/Contents/MacOS/Slotbar"
-else
-  # Copied out per arch: some toolchains build every arch into the same bin path.
-  slices="$(mktemp -d)"
-  for arch in "${archs[@]}"; do
-    "${build[@]}" -c release --arch "$arch"
-    bin_dir="$("${build[@]}" -c release --arch "$arch" --show-bin-path)"
-    cp "$bin_dir/Slotbar" "$slices/Slotbar-$arch"
-  done
-  lipo -create "$slices"/Slotbar-* -output "$app/Contents/MacOS/Slotbar"
-  rm -rf "$slices"
-fi
+"${build[@]}" -c "$config" ${arch_flags[@]+"${arch_flags[@]}"}
+bin_dir="$("${build[@]}" -c "$config" ${arch_flags[@]+"${arch_flags[@]}"} --show-bin-path)"
+cp "$bin_dir/Slotbar" "$app/Contents/MacOS/Slotbar"
 find Resources -maxdepth 1 -type f ! -name Info.plist -exec cp {} "$app/Contents/Resources/" \;
 # SwiftPM resource bundles of dependencies (KeyboardShortcuts), looked up via Bundle.main.resourceURL.
 find "$bin_dir" -maxdepth 1 -name "*.bundle" -exec cp -R {} "$app/Contents/Resources/" \;
