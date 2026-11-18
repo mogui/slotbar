@@ -24,3 +24,4 @@ Preconditions: `V launch --terminal`, `V show`, click `Terminal`; back up the cl
 ## Gotchas
 
 - Restore the user's clipboard after every paste test.
+- Built: SwiftTerm's `paste:` via the hidden Edit menu; bracketed markers come from SwiftTerm when mode 2004 is on (no Slotbar code).

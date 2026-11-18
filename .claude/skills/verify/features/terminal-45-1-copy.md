@@ -25,3 +25,4 @@ Preconditions: `V launch --terminal`, `V show`, click `Terminal`, type `echo COP
 
 - The clipboard is the user's: always back it up and restore it.
 - Background drags may not create a selection in a custom NSView; if not, ask before `--restore-window`.
+- Built: SwiftTerm's `copy:` via Slotbar's hidden Edit menu; with no selection `Cmd+C` does nothing (menu item disabled). Programs can still write the clipboard with OSC 52; that is not a selection.
