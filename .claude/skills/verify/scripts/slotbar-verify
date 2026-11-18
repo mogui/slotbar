@@ -41,7 +41,8 @@ start() {
   app="$(app_of "$run")"
   since="$(date '+%Y-%m-%d %H:%M:%S')"
   [ -f "$run/first-since" ] || echo "$since" > "$run/first-since"
-  open -n -g --env "CFFIXED_USER_HOME=$run/home" \
+  # HOME too: the Terminal's shells inherit it, so `~`, dotfiles and history stay in the isolated home.
+  open -n -g --env "CFFIXED_USER_HOME=$run/home" --env "HOME=$run/home" \
     --stdout "$run/evidence/stdout.log" --stderr "$run/evidence/stderr.log" "$app"
   for _ in $(seq 1 40); do
     local pid
@@ -73,6 +74,7 @@ stop_app() {
 save_logs() {
   # Every process this run started (launch + relaunches), from the first launch on.
   local run="$1" pids
+  [ -f "$run/pids" ] || pid_of "$run" > "$run/pids"  # a launch that timed out never recorded its pid
   pids="$(sed 's/.*/processID == &/' "$run/pids" | paste -sd '|' - | sed 's/|/ OR /g')"
   /usr/bin/log show --start "$(head -1 "$run/first-since")" \
     --predicate "subsystem == \"io.github.mogui.slotbar\" AND ($pids)" \
@@ -89,7 +91,9 @@ case "$cmd" in
     while [ $# -gt 0 ]; do
       case "$1" in
         --terminal) terminal=true ;;
-        --edge) edge="$2"; shift ;;
+        --edge)
+          edge="${2:-}"; shift
+          case "$edge" in right|left|top|bottom) ;; *) die "--edge needs right|left|top|bottom" ;; esac ;;
         *) die "unknown option $1" ;;
       esac; shift
     done
@@ -97,6 +101,7 @@ case "$cmd" in
     if [ -L "$current" ] && alive "$(readlink "$current")"; then die "a run is live: $(readlink "$current"); stop it first"; fi
     run="$root/$(date +%Y%m%d-%H%M%S)"
     mkdir -p "$run/evidence" "$run/home/Applications"
+    touch "$run/home/.zshrc"  # an empty home would start zsh's new-user configuration menu
     app="$(app_of "$run")"
     # Under ~/Applications of the isolated home, so the "Move Slotbar to Applications" alert stays away.
     cp -R "$repo/build/Slotbar.app" "$app"

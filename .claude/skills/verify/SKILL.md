@@ -15,7 +15,7 @@ Tools:
 ## Isolation
 
 - The copy lives in `/private/tmp/slotbar-verify/<run>/home/Applications/Slotbar.app` with bundle id `io.github.mogui.slotbar.verify`, so its UserDefaults (KeyboardShortcuts hotkeys), WebKit stores and notification identity are separate from the user's.
-- It runs with `CFFIXED_USER_HOME=<run>/home`: settings are `<run>/home/Library/Application Support/Slotbar/settings.json`. The user's `~/Library/Application Support/Slotbar` is never read or written. The Terminal's home directory is also `<run>/home` (the shell inherits `CFFIXED_USER_HOME`).
+- It runs with `CFFIXED_USER_HOME=<run>/home`: settings are `<run>/home/Library/Application Support/Slotbar/settings.json`. The user's `~/Library/Application Support/Slotbar` is never read or written. It also sets `HOME=<run>/home`, which the Terminal's shells inherit: `~`, the starting directory, `~/.zshrc` (an empty one is created at launch) and the shell history all live in `<run>/home`, never in the user's home.
 - Living under the isolated `~/Applications` keeps the modal "Move Slotbar to Applications" alert away; that alert blocks every reopen event.
 - One live run at a time (`V launch` refuses a second). The user's production Slotbar (`/Applications/Slotbar.app`) may be running: never kill it, never drive it. It owns the global Panel hotkey, so the copy logs `Global hotkey registration failed`; that is expected, see the hotkey Gotchas.
 
@@ -39,9 +39,11 @@ $V launch [--terminal] [--edge right|left|top|bottom]
 
 - **Show the Panel:** `$V show` (a reopen event; the AppDelegate shows the Panel on the last active view, Slot 1 at first). No Accessibility needed.
 - **Status item, hotkeys:** the status item is in the system menu bar, out of reach of `orca computer` (no menubar surface); use `$V show`. Global hotkeys (Panel, Terminal) cannot be sent by `orca computer hotkey` (it targets the app); see each feature's Gotchas.
-- **Rail:** `orca computer get-app-state --app io.github.mogui.slotbar.verify --json`, then click the Rail button by element index. Buttons carry tooltips (`Example`, `Example Org`, `Terminal`, `Settings`), exposed as their help text; order top to bottom is Slots, Terminal, gear. Fallback when the tree shows no names: click by window-local coordinates from a fresh `V shot` (Rail is 34 pt buttons on the edge opposite the screen edge; on the right edge it is the right-hand column).
+- **Rail:** `orca computer get-app-state --app io.github.mogui.slotbar.verify --json`, then click the Rail button by element index. Buttons carry tooltips (`Example  ⌘1`, `Example Org  ⌘2`, `Terminal  ⌃⌥T`, `Settings`; two spaces before the shortcut), exposed as their help text; order top to bottom is Slots, Terminal, gear. Fallback when the tree shows no names: click by window-local coordinates from a fresh `V shot` (Rail is 34 pt buttons next to the screen edge; on the right edge it is the right-hand column).
 - **Settings:** click the gear; one scrolling Form with sections General, Profiles, Slots, Terminal. The Terminal section has the toggle "Enable Terminal". Use `orca computer click` on the toggle, then confirm with `$V settings` (written immediately).
 - **Terminal input:** with the Terminal shown and key, `orca computer type-text --app io.github.mogui.slotbar.verify --text 'echo $TERM' --json` then `press-key --key Return`. The terminal view has no text field: type results are `unverified (text mismatch)` by design; prove the effect with a screenshot.
+- **Hide the Panel:** from a Slot, `Cmd+W`. While the Terminal is active `Cmd+W` closes the tab instead (on the last tab it also respawns the shell); to hide on the Terminal, the user presses `Ctrl+Option+T` (shown and key: hides), or switch to a Slot first (`Cmd+1`, `Cmd+W`; the next show then opens that Slot).
+- **Clipboard:** the clipboard is the user's. `pbpaste > <run>/clipboard.bak` backs up text only, so ask the user before a clipboard test whether the clipboard holds anything else (an image, files).
 - **Panel shortcuts:** `orca computer hotkey --app io.github.mogui.slotbar.verify --key CmdOrCtrl+1 --json` (and `Cmd+W`, `Cmd+T`, ...).
 - **Processes:** `$V shells` lists each live shell: `pid`, `argv` (a login shell shows `-zsh`), `tty`, `cwd`.
 - **Settings file:** `$V settings` prints the isolated `settings.json`.
@@ -51,7 +53,7 @@ $V launch [--terminal] [--edge right|left|top|bottom]
 Everything goes to `/private/tmp/slotbar-verify/<run>/evidence/` and survives `stop`:
 
 - `$V shot <name>` saves `<name>-<windowid>.png` per on-screen Slotbar window (window-only capture; never full-screen, which would record the user's screen).
-- `$V logs` writes `app.log` (unified log, subsystem `io.github.mogui.slotbar`, every process of the run) and prints it. Terminal events log under category `Terminal` (`Spawning /bin/zsh`, `Shell exited ...; respawning`).
+- `$V logs` writes `app.log` (unified log, subsystem `io.github.mogui.slotbar`, every process of the run) and prints it. Terminal events log under category `Terminal` (`Spawning /bin/zsh`; `Shell exited (<code>)`, followed by another `Spawning ...` only when the last tab respawns).
 - `stop` also copies the final `settings.json`; `revision` holds the git sha that was built.
 
 Proof standards:

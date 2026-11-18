@@ -27,5 +27,6 @@ Preconditions: `V launch --terminal`, `V show`, click `Terminal`.
 
 - A title set by `printf` is overwritten by `sleep` if the shell theme sets titles on preexec; then expect the command name (`sleep`) as the title.
 - A busy tab whose shell set no title is listed by its shell name (basename of the spawned shell, e.g. `zsh`).
+- Editing `settings.json` by hand is read only at launch: `enabled: false` written to the file changes nothing live (and the next Settings write overwrites it); it takes effect after `V relaunch`, with no confirmation.
 - The alert is app-modal (`runModal`), not a sheet: `V doctor` lists it as a separate window.
 - Only the Settings toggle asks. Writing `enabled: false` into settings.json terminates the shells without asking.

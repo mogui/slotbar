@@ -32,7 +32,7 @@ extension Settings {
 
 /// The Terminal's persisted settings; every key is optional and falls back to its default.
 struct TerminalSettings: Codable, Equatable, Sendable {
-    enum Theme: String, Codable, Sendable {
+    enum Theme: String, Codable, CaseIterable, Sendable {
         case system, solarizedLight, solarizedDark, dracula, nord
     }
 
@@ -50,26 +50,6 @@ struct TerminalSettings: Codable, Equatable, Sendable {
         case enabled, theme, fontSize, shellPath, startDirectory
     }
 
-    init(enabled: Bool = false, theme: Theme = .system, fontSize: Double = 13,
-         shellPath: String? = nil, startDirectory: String? = nil) {
-        self.enabled = enabled
-        self.theme = theme
-        self.fontSize = fontSize
-        self.shellPath = shellPath
-        self.startDirectory = startDirectory
-    }
-
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        enabled = try c.decodeIfPresent(Bool.self, forKey: .enabled) ?? false
-        // An unknown theme reads as `system` instead of making the whole file unreadable.
-        theme = (try? c.decodeIfPresent(Theme.self, forKey: .theme)) ?? .system
-        let size = try c.decodeIfPresent(Double.self, forKey: .fontSize) ?? 13
-        fontSize = min(max(size, Self.fontSizeRange.lowerBound), Self.fontSizeRange.upperBound)
-        shellPath = try c.decodeIfPresent(String.self, forKey: .shellPath)
-        startDirectory = try c.decodeIfPresent(String.self, forKey: .startDirectory)
-    }
-
     // Null shell and directory are written as explicit nulls, like a Slot's `label`.
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
@@ -78,6 +58,19 @@ struct TerminalSettings: Codable, Equatable, Sendable {
         try c.encode(fontSize, forKey: .fontSize)
         try c.encode(shellPath, forKey: .shellPath)
         try c.encode(startDirectory, forKey: .startDirectory)
+    }
+}
+
+extension TerminalSettings {
+    /// A missing or mistyped key reads as its default instead of making the whole file unreadable.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        enabled = (try? c.decodeIfPresent(Bool.self, forKey: .enabled)) ?? false
+        theme = (try? c.decodeIfPresent(Theme.self, forKey: .theme)) ?? .system
+        let size = (try? c.decodeIfPresent(Double.self, forKey: .fontSize)) ?? 13
+        fontSize = min(max(size, Self.fontSizeRange.lowerBound), Self.fontSizeRange.upperBound)
+        shellPath = try? c.decodeIfPresent(String.self, forKey: .shellPath)
+        startDirectory = try? c.decodeIfPresent(String.self, forKey: .startDirectory)
     }
 }
 

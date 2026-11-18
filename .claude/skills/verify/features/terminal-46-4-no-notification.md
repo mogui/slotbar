@@ -17,7 +17,7 @@ Status: pending
 
 Preconditions: `V launch --terminal`, `V show`, click `Terminal`.
 
-- **Ring hidden.** Type `sleep 3; printf '\a'` + Return, `Cmd+W`. After 4 s:
+- **Ring hidden.** Type `sleep 3; printf '\a'` + Return, `Cmd+1`, `Cmd+W` (hide from a Slot; `Cmd+W` on the Terminal closes the tab). After 4 s:
 - **No notification.** `V logs`: no line from category `Notifications` after the ring (the verify copy is not authorized for notifications, so the log is the proof, not Notification Center).
 - **No badge.** `V doctor` window list: the status item window width unchanged from before the ring (no title text); or a menu bar shot of the status item taken with the user's consent.
 

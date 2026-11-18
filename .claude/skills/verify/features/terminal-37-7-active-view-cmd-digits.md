@@ -21,7 +21,7 @@ Preconditions: `V launch --terminal`, `V show`.
 - **Terminal active.** Click `Terminal`. `V shot 37-7-terminal`: shell visible, no web page; Rail highlight on Terminal.
 - **Cmd+2.** `oc hotkey --key CmdOrCtrl+2`. `V shot 37-7-slot2`: example.org page, highlight on `Example Org`.
 - **Back and Cmd+1.** Click `Terminal`, `oc hotkey --key CmdOrCtrl+1`: example.com page.
-- **Guards.** Click `Terminal`, press `CmdOrCtrl+Shift+O`: no browser opens (no new app in `oc list-apps` front); `CmdOrCtrl+R`: `V logs` shows no Slot reload line.
+- **Guards.** Click `Terminal`, press `CmdOrCtrl+Shift+O`: no browser opens (no new app in `oc list-apps` front); `CmdOrCtrl+R` with `cat -v` running in the tab: no `^R` appears and the Terminal stays shown; `Control+C` to end.
 - **Proof.** shots per step.
 
 ## Gotchas

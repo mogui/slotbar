@@ -28,6 +28,6 @@ Preconditions: `V launch --terminal`, `V show`.
 
 ## Gotchas
 
-- Home is the isolated `<run>/home` (the app runs with `CFFIXED_USER_HOME`), not the user's home; the shell still loads the user's real `~/.zshrc` because `HOME` is inherited unchanged. Expected; do not "fix" it.
+- Home is the isolated `<run>/home`: the verify script launches the app with `CFFIXED_USER_HOME` and `HOME` set to it, so the shell loads the empty `<run>/home/.zshrc` and a plain prompt is expected. A normally launched Slotbar inherits the user's real `HOME`.
 - `ps` cannot show another process's environment on macOS; TERM is proven only from inside the shell.
 - The verify copy is launched by `open`, so `$SHELL` comes from launchd's environment.

@@ -19,11 +19,11 @@ Status: pending
 Preconditions: `V launch --terminal`, `V show`, click `Terminal`.
 
 - **Ring while away.** Type `sleep 3; printf '\a'` + Return, `Cmd+1` at once. After 4 s `V shot 46-3-dot`: accent dot at the top-right of the Terminal Rail icon; its AX label is `Terminal, bell` in `oc get-app-state`.
-- **Hidden Panel.** Repeat with `Cmd+W` instead of `Cmd+1`, then `V show`: dot on the Rail icon (Panel shows the last view, the Terminal, which then clears it: shoot immediately or show on a Slot).
+- **Hidden Panel.** Repeat with `Cmd+1` then `Cmd+W` (hides from Slot 1), then `V show`: Slot 1 shown, dot on the Rail icon.
 - **Clear.** Click `Terminal`: dot gone.
 - **Unit.** `swift test --filter RailItemsTests`.
 
 ## Gotchas
 
 - The Rail item AX label is `Terminal, bell` only while flagged; otherwise the button has no explicit label.
-- With the Panel hidden, `V show` reopens on the Terminal and clears the flag at once; use the Slot variant for the screenshot.
+- `Cmd+W` on the Terminal closes the tab; hide from a Slot. A Panel hidden on the Terminal reopens on it and clears the flag at once.

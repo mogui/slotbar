@@ -139,6 +139,14 @@ import Testing
             atPath: directory.appendingPathComponent("settings.corrupt-20260304-050607.json").path))
     }
 
+    @Test func mistypedTerminalFieldsReadAsDefaultsAndKeepTheRestOfTheFile() throws {
+        let terminal = try loadTerminal(
+            #"{ "enabled": "true", "theme": "nord", "fontSize": "big", "shellPath": 1, "startDirectory": false }"#)
+        #expect(terminal == TerminalSettings(theme: .nord))
+        #expect(!FileManager.default.fileExists(
+            atPath: directory.appendingPathComponent("settings.corrupt-20260304-050607.json").path))
+    }
+
     @Test func terminalRoundTripsThroughTheFile() throws {
         let store = SettingsStore(directory: directory)
         let terminal = TerminalSettings(enabled: true, theme: .dracula, fontSize: 18,

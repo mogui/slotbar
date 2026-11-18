@@ -12,6 +12,11 @@ extension KeyboardShortcuts.Name {
     nonisolated(unsafe) static let toggleTerminal = Self("toggleTerminal", default: .init(.t, modifiers: [.control, .option]))
 }
 
+extension Notification.Name {
+    /// Posted by KeyboardShortcuts after a recorder changes a shortcut.
+    static let shortcutByNameDidChange = Self("KeyboardShortcuts_shortcutByNameDidChange")
+}
+
 /// Registers the global hotkey and tracks whether its registration failed (SPEC 9).
 /// `isUnavailable` drives both the status menu line and the Settings inline warning.
 @MainActor
@@ -25,7 +30,7 @@ final class Hotkey {
         KeyboardShortcuts.onKeyDown(for: .togglePanel) { MainActor.assumeIsolated { onKeyDown() } }
         KeyboardShortcuts.onKeyDown(for: .toggleTerminal) { MainActor.assumeIsolated { onTerminalKeyDown() } }
         NotificationCenter.default.addObserver(
-            forName: Notification.Name("KeyboardShortcuts_shortcutByNameDidChange"), object: nil, queue: .main
+            forName: .shortcutByNameDidChange, object: nil, queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.reprobe() }
         }

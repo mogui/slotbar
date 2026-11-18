@@ -61,7 +61,7 @@ final class PanelController: NSObject {
         // A recorded Terminal hotkey changes the Rail tooltip; it is not a Settings change.
         NotificationCenter.default.addObserver(
             self, selector: #selector(shortcutDidChange(_:)),
-            name: Notification.Name("KeyboardShortcuts_shortcutByNameDidChange"), object: nil)
+            name: .shortcutByNameDidChange, object: nil)
     }
 
     /// Replaces the Slot list and the Terminal shown in the Rail; keeps the active view when it still exists,

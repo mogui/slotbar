@@ -40,7 +40,12 @@ import Testing
     @Test func environmentIsInheritedWithTermOverridden() {
         let launch = shellLaunch(shellPath: nil, startDirectory: nil,
                                  environment: ["PATH": "/usr/bin", "TERM": "dumb"], home: home)
-        #expect(Set(launch.environment) == ["PATH=/usr/bin", "TERM=xterm-256color"])
+        #expect(Set(launch.environment) == ["PATH=/usr/bin", "TERM=xterm-256color", "LANG=en_US.UTF-8"])
+    }
+
+    @Test func anInheritedLangIsKept() {
+        let launch = shellLaunch(shellPath: nil, startDirectory: nil, environment: ["LANG": "it_IT.UTF-8"], home: home)
+        #expect(launch.environment.contains("LANG=it_IT.UTF-8"))
     }
 }
 

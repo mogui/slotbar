@@ -19,7 +19,7 @@ Status: pending
 Preconditions: `V launch --terminal`, `V show`.
 
 - **Rail.** Click `Terminal`; without clicking the terminal area, `oc type-text --text 'touch ~/fr-rail'` + Return. `<run>/home/fr-rail` exists.
-- **Re-show.** `oc hotkey --key CmdOrCtrl+W` (hides the Panel), `V show` (reopens on the Terminal), type `touch ~/fr-reshow` + Return. File exists.
+- **Re-show.** the user presses `Ctrl+Option+T` (Terminal shown and key: hides the Panel; `Cmd+W` would close the tab), `V show` (reopens on the Terminal), type `touch ~/fr-reshow` + Return. File exists.
 - **From Settings.** Click `Settings`, click `Terminal`, type `touch ~/fr-settings` + Return. File exists.
 - **Proof.** `ls <run>/home` and a shot after each step.
 

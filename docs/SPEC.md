@@ -296,7 +296,7 @@ Sources: [Terminal spec](terminal-spec.md)
   - Close on the last tab replaces it with a fresh tab and hides the Panel. Shell exit (`exit`, `Ctrl+D`) closes its tab; on the last tab it is replaced with a fresh tab and the Panel stays.
   - A bell on a tab that is not visible (another tab active, or the Terminal not shown) sets its flag; the flag clears when the tab becomes visible. The bell raises no macOS notification and no status bar badge.
 - Tab bar: shown only with two or more tabs. Each tab shows the title the shell sets; click selects, a close button appears on hover, a double-click on the empty part of the bar opens a new tab, a bell dot marks flagged tabs.
-- Shell: a login shell (argv[0] prefixed with `-`) from `shellPath` or `$SHELL`, in `startDirectory` or home, with the app environment plus `TERM=xterm-256color`. Settings changes apply only to tabs spawned afterwards. A shell that fails to start leaves the tab showing the error and "Press Return to try again"; Return respawns with the current settings.
+- Shell: a login shell (argv[0] prefixed with `-`) from `shellPath` or `$SHELL`, in `startDirectory` or home, with the app environment plus `TERM=xterm-256color`, and `LANG=en_US.UTF-8` when the app environment has no `LANG`. Settings changes apply only to tabs spawned afterwards. A shell that fails to start leaves the tab showing the error and "Press Return to try again"; Return respawns with the current settings.
 - Turning the Terminal off or quitting with any busy tab asks for one confirmation listing the busy tabs' titles; on confirm, all shells are terminated. With every tab idle at the prompt, both happen without confirmation.
 - Appearance: SF Mono at the configured size, blinking block cursor, 10,000 lines of scrollback per tab. Themes are built-in palettes (16 ANSI colors, foreground, background, cursor, selection); `system` follows the effective light or dark appearance live. Rows and columns follow the Panel size, on every edge.
 - `Cmd`-click on a URL in the output opens it in the default browser through `NSWorkspace`, bypassing link routing (section 7).
@@ -485,22 +485,22 @@ Sources: [Keyboard input in a non-activating Panel](https://github.com/mogui/slo
 | `Cmd+1` ... `Cmd+9` | Make Slot N active (unchanged). |
 | `Cmd+T` | New Terminal tab. |
 | `Cmd+W` | Close the current tab (section 4.8; on the last tab: fresh tab and hide the Panel). |
-| `Cmd+Shift+[` / `Cmd+Shift+]` | Previous / next tab. |
-| `Cmd+K` | Clear the current tab's screen and scrollback. |
-| `Cmd+=` / `Cmd+-` / `Cmd+0` | Font larger / smaller / back to the Settings size, on all tabs, not saved. |
+| `Cmd+Shift+[` / `Cmd+Shift+]` | Previous / next tab. Also matched by key position (the US `[` / `]` keys), so layouts where those keys type other characters work. |
+| `Cmd+K` | Clear the current tab's screen and scrollback; a tab that is not busy also sends `Ctrl+L` to its shell to redraw the prompt. |
+| `Cmd+=` (also `Cmd++`, with or without Shift) / `Cmd+-` / `Cmd+0` | Font larger / smaller / back to the Settings size, on all tabs, not saved. |
 | `Cmd+R`, `Cmd+Shift+H`, `Cmd+Shift+O` | Consumed, no action. |
 
 - In the Terminal, `Cmd+C` copies the selection (selecting never copies), `Cmd+V` pastes with bracketed paste when the program enables it, `Cmd+A` selects the whole scrollback. Option composes characters as in macOS; it is not a Meta key.
 - In a Child window, `Cmd+W` closes that window. Other keys go to the page.
 - Esc is not bound; pages own it.
 - Main menu (`NSApp.mainMenu`, visible only with Show in Dock): an App menu with About Slotbar, Settings... (`Cmd+,`), Quit Slotbar (`Cmd+Q`), and an Edit menu with Undo (`Cmd+Z`), Redo (`Cmd+Shift+Z`), Cut, Copy, Paste, Select All, using the standard first-responder selectors. Without it, `Cmd+A/C/V/Z` do nothing in web fields.
-- Global hotkey: KeyboardShortcuts name `togglePanel`, default `Ctrl+Option+S`, recordable in Settings > General. No per-Slot hotkeys. Terminal hotkey: `toggleTerminal`, default `Ctrl+Option+T`, recordable in Settings > Terminal, registered only while the Terminal is on (section 4.5). When registration fails, Settings shows an inline warning and the status menu shows "Hotkey unavailable"; the icon click still works.
+- Global hotkey: KeyboardShortcuts name `togglePanel`, default `Ctrl+Option+S`, recordable in Settings > General. No per-Slot hotkeys. Terminal hotkey: `toggleTerminal`, default `Ctrl+Option+T`, recordable in Settings > Terminal, registered only while the Terminal is on (section 4.5). When the Panel hotkey's registration fails, Settings shows an inline warning and the status menu shows "Hotkey unavailable"; the icon click still works. The Terminal hotkey has no registration warning.
 
 ## 10. Settings UI
 
 Sources: [Settings data model and UI](https://github.com/mogui/slotbar/issues/10), [Panel behaviour](https://github.com/mogui/slotbar/issues/9), [Notification behaviour](https://github.com/mogui/slotbar/issues/12), [Build and release pipeline](https://github.com/mogui/slotbar/issues/16)
 
-- Settings is shown inside the Panel, in the Slot area in place of the active Slot: one scrolling page, a grouped SwiftUI `Form` in a centered column of at most 640 pt, with the sections General, Profiles, Slots, Terminal. Opened by `Cmd+,`, the status menu, the Rail gear and the empty-state button; opening it shows the Panel. Clicking a Slot icon or a `Cmd+1...9` shortcut returns to that Slot; the next show of the Panel shows a Slot. While Settings is shown, no Slot counts as on screen.
+- Settings is shown inside the Panel, in the Slot area in place of the active Slot: one scrolling page, a grouped SwiftUI `Form` in a centered column of at most 640 pt, with the sections General, Profiles, Slots, Terminal. Opened by `Cmd+,`, the status menu, the Rail gear and the empty-state button; opening it shows the Panel. Clicking a Slot icon or a `Cmd+1...9` shortcut returns to that Slot; the next show of the Panel shows the last active view (a Slot or the Terminal). While Settings is shown, no Slot counts as on screen.
 - Every edit is saved immediately to `settings.json` and applied live. A change made from the Rail menu shows live in Settings.
 
 ### 10.1 General
@@ -535,8 +535,8 @@ Sources: [Settings data model and UI](https://github.com/mogui/slotbar/issues/10
 | Terminal hotkey | `KeyboardShortcuts.Recorder` for `toggleTerminal`. |
 | Theme | Picker: Follow system, Solarized Light, Solarized Dark, Dracula, Nord. |
 | Font size | Stepper, 9-36, default 13. |
-| Shell | Text field for `shellPath`; placeholder shows the current `$SHELL`; empty writes `null`. |
-| Starting directory | Text field for `startDirectory`; placeholder `~`; empty writes `null`. |
+| Shell | Text field for `shellPath`, written on Return or when the field loses focus; placeholder shows the current `$SHELL`; empty writes `null`. |
+| Starting directory | Text field for `startDirectory`, written on Return or when the field loses focus; placeholder `~`; empty writes `null`. |
 
 All rows except the switch are disabled while the Terminal is off. Shell and directory changes apply to new tabs only.
 

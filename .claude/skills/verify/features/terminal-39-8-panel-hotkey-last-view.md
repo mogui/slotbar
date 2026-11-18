@@ -17,7 +17,7 @@ Status: pending
 
 Preconditions: `V launch --terminal`, `V show`.
 
-- **Last view Terminal.** Click `Terminal`, `oc hotkey --key CmdOrCtrl+W`, `V show` (same path as the status item click: `show()` on the last view). `V shot 39-8-terminal`: Terminal.
+- **Last view Terminal.** Click `Terminal`, the user presses `Ctrl+Option+T` (Terminal shown and key: hides the Panel; `Cmd+W` would close the tab), `V show` (same path as the status item click: `show()` on the last view). `V shot 39-8-terminal`: Terminal.
 - **Panel hotkey.** Repeat with the user pressing the Panel hotkey instead of `V show`.
 - **Fallback.** Click `Terminal`, click `Settings`, toggle off, hide, `V show`: Slot 1.
 

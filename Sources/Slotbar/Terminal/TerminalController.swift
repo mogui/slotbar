@@ -46,11 +46,15 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
 
     /// Terminates every shell; called when the Terminal is turned off.
     func terminate() {
-        for tab in tabViews.values {
-            tab.processDelegate = nil
-            tab.terminate()
-        }
-        tabViews = [:]
+        tabViews.keys.forEach(discard)
+    }
+
+    /// Stops the tab's shell without reporting its exit and drops its view.
+    private func discard(_ id: Int) {
+        guard let tab = tabViews.removeValue(forKey: id) else { return }
+        tab.processDelegate = nil
+        tab.terminate()
+        tab.removeFromSuperview()
     }
 
     /// Turning off or quitting: asks once when any tab is busy, then terminates every shell.
@@ -62,6 +66,8 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
 
     /// Applies the Settings theme and font size to every tab; a new Settings size replaces the live size.
     func apply(_ settings: TerminalSettings) {
+        // Every Settings write lands here; restyling forces a full redraw of each tab.
+        guard settings.theme != theme || settings.fontSize != settingsFontSize else { return }
         theme = settings.theme
         if settings.fontSize != settingsFontSize {
             settingsFontSize = settings.fontSize
@@ -130,11 +136,7 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
         for effect in effects {
             switch effect {
             case .spawnShell(let id): spawnTab(id)
-            case .terminateShell(let id):
-                guard let tab = tabViews.removeValue(forKey: id) else { break }
-                tab.processDelegate = nil
-                tab.terminate()
-                tab.removeFromSuperview()
+            case .terminateShell(let id): discard(id)
             case .askConfirmation(let id): askToClose(id)
             case .hidePanel: onHidePanel?()
             case .askTurnOffConfirmation(let ids):

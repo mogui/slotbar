@@ -14,14 +14,14 @@ Status: pending
 
 ## How to get to it (user POV)
 
-- Settings toggle; hide the Panel with `Cmd+W` or the hotkey and come back later.
+- Settings toggle; hide the Panel (from a Slot with `Cmd+W`, or with a hotkey) and come back later.
 
 ## Driving it with slotbar-verify and orca computer
 
 Preconditions: `V launch` (off), `V show`.
 
 - **Create.** Settings > Enable Terminal on. `V shells`: one `-zsh`; `V logs`: `Spawning`.
-- **Hidden.** Click `Terminal`, type `while true; do date >> ~/tick; sleep 1; done` + Return, `oc hotkey --key CmdOrCtrl+W`. `V doctor` shows no window; after 10 s `wc -l <run>/home/tick` keeps growing; the shell pid is unchanged.
+- **Hidden.** Click `Terminal`, type `while true; do date >> ~/tick; sleep 1; done` + Return, `oc hotkey --key CmdOrCtrl+1`, `oc hotkey --key CmdOrCtrl+W`. `V doctor` shows no window; after 10 s `wc -l <run>/home/tick` keeps growing; the shell pid is unchanged.
 - **Memory pressure.** With the user's consent only: `memory_pressure -S -l warn` (simulated pressure, sudo not needed for -S on recent macOS; if it asks for sudo, mark not driven). `V logs` shows `Memory pressure`; `V shells` pid unchanged; tick still grows.
 - **Destroy.** `V show`, Settings > Enable Terminal off. `V shells` empty; tick stops growing.
 

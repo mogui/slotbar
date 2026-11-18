@@ -6,13 +6,13 @@ A Slotbar user who works in the terminal opens a separate terminal app every tim
 
 ## Solution
 
-Slotbar has a built-in **Terminal**: a native terminal view living in the Panel next to the Slots. It is turned on from a dedicated Terminal page in Settings. When on, a fixed icon at the end of the Rail and a dedicated global hotkey open it. The Terminal holds several tabs, each running its own shell. It is never unloaded, so shells keep running while the Panel is hidden. Theme, font size, shell and starting directory are configurable. Nothing external is installed or started: no server, no port.
+Slotbar has a built-in **Terminal**: a native terminal view living in the Panel next to the Slots. It is turned on from a dedicated Terminal section in Settings. When on, a fixed icon at the end of the Rail and a dedicated global hotkey open it. The Terminal holds several tabs, each running its own shell. It is never unloaded, so shells keep running while the Panel is hidden. Theme, font size, shell and starting directory are configurable. Nothing external is installed or started: no server, no port.
 
 ## User Stories
 
 1. As a Slotbar user, I want to turn the Terminal on from Settings, so that I get a shell in the Panel only when I want one.
 2. As a Slotbar user, I want the Terminal off by default, so that existing and new installs behave as before until I opt in.
-3. As a Slotbar user, I want the Terminal settings on their own Settings page, so that they are easy to find and do not clutter General.
+3. As a Slotbar user, I want the Terminal settings in their own Settings section, so that they are easy to find and do not clutter General.
 4. As a Slotbar user, I want a Terminal icon fixed at the end of the Rail, so that I can open it with one click.
 5. As a Slotbar user, I want the Terminal icon to stay out of the Slot list, so that `Cmd+1..9` keep pointing at my web Slots.
 6. As a Slotbar user, I want the Terminal icon to look different from Slot icons (no Profile color bar), so that I can tell it is not a web app.
@@ -93,7 +93,7 @@ Slotbar has a built-in **Terminal**: a native terminal view living in the Panel 
 
 **Terminal controller**
 - Owned by the AppDelegate, created when the Terminal is turned on, destroyed when it is turned off. Never unloaded by the Slot lifecycle rules or memory pressure.
-- Spawns each tab's shell as a login shell (argv[0] prefixed with `-`) from `shellPath` or `$SHELL`, in `startDirectory` or home, with the app environment plus `TERM=xterm-256color`. Settings changes affect only tabs spawned afterwards.
+- Spawns each tab's shell as a login shell (argv[0] prefixed with `-`) from `shellPath` or `$SHELL`, in `startDirectory` or home, with the app environment plus `TERM=xterm-256color`, and `LANG=en_US.UTF-8` when the app environment has no `LANG`. Settings changes affect only tabs spawned afterwards.
 - A shell that fails to start leaves the tab showing the error and "Press Return to try again"; Return respawns with the current settings.
 - Turning the Terminal off or quitting with any busy tab asks for one confirmation listing the busy tabs' titles; on confirm, all shells are terminated.
 
@@ -114,7 +114,7 @@ Slotbar has a built-in **Terminal**: a native terminal view living in the Panel 
 - `Cmd`-click on a URL in the output opens it with the default browser through macOS, bypassing link routing.
 
 **Settings UI**
-- A new "Terminal" page next to General, Profiles and Slots: Enable toggle, hotkey recorder, theme picker, font size stepper, shell path field (placeholder shows the current `$SHELL`), starting directory field (placeholder `~`). All controls except the toggle are disabled while the Terminal is off. Changes are written immediately, like the rest of Settings.
+- A "Terminal" section after General, Profiles and Slots: Enable toggle, hotkey recorder, theme picker, font size stepper, shell path field (placeholder shows the current `$SHELL`), starting directory field (placeholder `~`). All controls except the toggle are disabled while the Terminal is off. Changes are written immediately, like the rest of Settings; the two text fields on Return or when they lose focus.
 
 ## Testing Decisions
 
