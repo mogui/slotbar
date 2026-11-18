@@ -24,4 +24,5 @@ Preconditions: `V launch --terminal`, `V show`, click `Terminal`.
 
 ## Gotchas
 
+- Wait more than 2 s after a spawn before `exit`/`Control+D`: an exit within 2 s is a start failure (#44 error screen, tab kept), not a shell exit.
 - `oc hotkey` uses `CmdOrCtrl` for Cmd on macOS; write `Control+D` for the real Control key.

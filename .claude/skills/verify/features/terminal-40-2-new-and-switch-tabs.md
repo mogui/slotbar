@@ -23,5 +23,7 @@ Preconditions: `V launch --terminal`, `V show`, click `Terminal`.
 
 ## Gotchas
 
-- On an Italian layout `[`/`]` are Option chords; macOS maps `Cmd+Shift+[` by key equivalent characters. If `oc hotkey` cannot express the bracket, use `--key "CmdOrCtrl+Shift+BracketLeft"` per `oc hotkey --help`.
+- Previous/next match `Cmd+Shift` plus `[`/`{` and `]`/`}`, or the US bracket key codes 33/30, so on the Italian layout `Cmd+Shift` on the keys right of `P` work too. If `oc hotkey` cannot express the bracket, use `--key "CmdOrCtrl+Shift+BracketLeft"` per `oc hotkey --help`.
+- Previous/next wrap around (first <-> last); with one tab they do nothing.
+- `Cmd+T` appends the new tab at the end.
 - `oc type-text` on the terminal view reports `unverified (text mismatch)`; prove with shots, `V shells` and files under `<run>/home`.

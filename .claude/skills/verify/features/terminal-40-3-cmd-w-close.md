@@ -22,4 +22,5 @@ Preconditions: `V launch --terminal`, `V show`, click `Terminal`.
 
 ## Gotchas
 
+- Closing the active tab activates its right neighbour, else the left one.
 - With a busy current tab `Cmd+W` asks for confirmation (terminal-40-5); keep tabs idle here.

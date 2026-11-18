@@ -17,9 +17,9 @@ Status: pending
 
 Preconditions: worktree at the ticket's commit.
 
-- **Run.** `swift test --filter "PanelShortcutTests|<SessionModel suite>"`. Exit 0.
+- **Run.** `swift test --filter "PanelShortcutTests|TerminalSessionTests"`. Exit 0.
 - **Coverage read.** List test names; tick each rule and mapping above.
 
 ## Gotchas
 
-- None beyond locating the suite name.
+- Mapping cases: `terminalBound` / `terminalUnbound` in PanelShortcutTests; Slot cases: `bound` / `unbound`.

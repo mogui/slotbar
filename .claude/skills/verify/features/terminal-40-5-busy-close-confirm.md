@@ -19,7 +19,7 @@ Status: pending
 
 Preconditions: `V launch --terminal`, `V show`, click `Terminal`.
 
-- **Busy.** `Cmd+T`, type `sleep 600` + Return, `oc hotkey --key CmdOrCtrl+W`. `oc get-app-state` shows a sheet/alert; `V shot 40-5-confirm`.
+- **Busy.** `Cmd+T`, type `sleep 600` + Return, `oc hotkey --key CmdOrCtrl+W`. `oc get-app-state` shows a sheet on the Panel: "Close this tab?", buttons `Close` (default) and `Cancel`; `V shot 40-5-confirm`.
 - **Cancel.** Click the cancel button. `pgrep -f "sleep 600"` still finds it; 2 shells.
 - **Confirm.** `Cmd+W` again, click the confirm button. `pgrep -f "sleep 600"` empty; 1 shell.
 - **Idle.** `Cmd+T`, `Cmd+W`: no dialog, 1 shell.
@@ -27,4 +27,5 @@ Preconditions: `V launch --terminal`, `V show`, click `Terminal`.
 ## Gotchas
 
 - `sleep 600` with a unique duration avoids matching other `sleep` processes on the Mac; never `pkill sleep`.
-- An NSAlert is app-modal; if it appears as a separate window, find it with `V doctor` and `oc list-windows`.
+- The alert is a sheet on the Panel window (`beginSheetModal`), not app-modal; Escape = `Cancel`, Return = `Close`.
+- Busy = the pty foreground process group differs from the shell pid (`tcgetpgrp`); a job in the background (`sleep 600 &`) is not busy.

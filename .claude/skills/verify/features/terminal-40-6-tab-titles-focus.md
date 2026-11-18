@@ -24,5 +24,6 @@ Preconditions: `V launch --terminal`, `V show`, click `Terminal`.
 
 ## Gotchas
 
+- The first responder is set by `PanelController.activate` (show) and `TerminalController.showActiveTab` (switch); a tab title is "" until the shell sets one.
 - Before #41 there is no tab bar to read titles from; verify titles once #41 is merged, or through the model tests.
 - `oc type-text` on the terminal view reports `unverified (text mismatch)`; prove with shots, `V shells` and files under `<run>/home`.

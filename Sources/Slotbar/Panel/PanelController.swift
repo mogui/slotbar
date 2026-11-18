@@ -70,6 +70,7 @@ final class PanelController: NSObject {
         self.settings = settings
         self.controllers = controllers
         self.terminal = terminal
+        terminal?.onHidePanel = { [weak self] in self?.hide() }
         if isShowing && !showsSettings {
             activate(viewToShow(slots: settings.slots, lastActive: activeView, terminalEnabled: terminal != nil))
         } else {
@@ -78,9 +79,13 @@ final class PanelController: NSObject {
         updateShown()
     }
 
-    /// Tells each Slot whether it is the one on screen (SPEC 6.1), which drives its grace timer.
+    /// Tells each Slot whether it is the one on screen (SPEC 6.1), which drives its grace timer, and the
+    /// Terminal whether it is on screen, which also selects the Terminal shortcut mappings.
     private func updateShown() {
         controllers.forEach { $0.setShown($0.slot.id == visibleSlot) }
+        let terminalVisible = isShowing && !showsSettings && activeView == .terminal
+        terminal?.setShown(terminalVisible)
+        window.terminalActive = terminalVisible
     }
 
     /// A Slot entered or left the crash placeholder: swap its view if it is on screen.
@@ -303,6 +308,12 @@ final class PanelController: NSObject {
         case .goHome: performOnActive(.goHome)
         case .openInBrowser: performOnActive(.openInBrowser)
         case .reload: performOnActive(.reload)
+        case .newTab: terminal?.openTab()
+        case .closeTab: terminal?.closeActiveTab()
+        case .previousTab: terminal?.selectPreviousTab()
+        case .nextTab: terminal?.selectNextTab()
+        // shortcut: clear and font size are consumed with no action until #45 / #43 wire them.
+        case .clear, .fontLarger, .fontSmaller, .fontReset, .consume: break
         }
     }
 
@@ -329,7 +340,11 @@ final class PanelController: NSObject {
         view.frame = slotArea.bounds
         view.autoresizingMask = [.width, .height]
         slotArea.addSubview(view)
-        if view !== emptyState { window.makeFirstResponder(view) }
+        if case .terminal = target, let tab = terminal?.activeTabView {
+            window.makeFirstResponder(tab)
+        } else if view !== emptyState {
+            window.makeFirstResponder(view)
+        }
         updateShown()
         refreshRail()
     }

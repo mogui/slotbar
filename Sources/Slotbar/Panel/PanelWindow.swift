@@ -14,13 +14,16 @@ final class PanelWindow: NSPanel {
 
     /// Handles Panel shortcuts before the webview sees them (SPEC 9).
     var onShortcut: ((PanelShortcut) -> Void)?
+    /// Whether the Terminal is the active view; selects the Terminal mappings.
+    var terminalActive = false
 
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         if let characters = event.charactersIgnoringModifiers, let onShortcut,
-           let shortcut = PanelShortcut.match(charactersIgnoringModifiers: characters, modifierFlags: event.modifierFlags) {
+           let shortcut = PanelShortcut.match(charactersIgnoringModifiers: characters, modifierFlags: event.modifierFlags,
+                                              keyCode: event.keyCode, terminalActive: terminalActive) {
             onShortcut(shortcut)
             return true
         }

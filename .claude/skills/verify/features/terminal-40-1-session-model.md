@@ -19,10 +19,11 @@ Status: pending
 
 Preconditions: `V launch --terminal`, `V show`, click `Terminal`.
 
-- **Tests.** `swift test --filter <SessionModel suite>` (name chosen by #40; find it with `grep -rl "shellExited\|closeRequested" Tests`). All pass.
-- **Purity.** `grep -n "^import" <model file>`: Foundation at most.
+- **Tests.** `swift test --filter TerminalSessionTests`. All pass.
+- **Purity.** `grep -n "^import" Sources/Slotbar/Terminal/TerminalSession.swift`: no imports.
 - **Live count.** `Cmd+T` twice (`oc hotkey --key CmdOrCtrl+T`): `V shells` shows 3 shells; `Cmd+W` once: 2.
 
 ## Gotchas
 
-- The model's file and suite names are decided by #40; locate them before driving.
+- Model: `TerminalSession` (`Sources/Slotbar/Terminal/TerminalSession.swift`), one entry point `handle(_ Event) -> [Effect]`; `TerminalController` performs the effects.
+- Wait more than 2 s after a spawn before `exit`: an exit within 2 s is a start failure (#44 error screen, tab kept), not a shell exit.

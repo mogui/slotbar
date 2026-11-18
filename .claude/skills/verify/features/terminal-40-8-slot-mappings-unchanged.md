@@ -20,7 +20,7 @@ Preconditions: `V launch --terminal`, `V show` (Slot 1).
 - **Cmd+T on a Slot.** `V shells` count, `oc hotkey --key CmdOrCtrl+T`, count unchanged.
 - **Cmd+2 / Cmd+1.** Slots switch.
 - **Cmd+W.** Panel hides (`V doctor`).
-- **Unit.** `swift test --filter PanelShortcutTests`: the pre-existing Slot cases pass unchanged (`git diff main -- Tests/SlotbarTests/PanelShortcutTests.swift` only adds cases).
+- **Unit.** `swift test --filter PanelShortcutTests`: the pre-existing Slot cases pass unchanged (`git diff main -- Tests/SlotbarTests/PanelShortcutTests.swift`: the Slot case lists keep their entries; calls go through the `match(_:terminalActive: false)` helper; new unbound cases added).
 
 ## Gotchas
 

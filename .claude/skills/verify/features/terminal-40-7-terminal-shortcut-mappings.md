@@ -29,4 +29,5 @@ Preconditions: `V launch --terminal`, `V show`, click `Terminal`.
 
 ## Gotchas
 
+- `Cmd+=` and `Cmd++` (with or without Shift) both map to font larger; clear and font keys are consumed with no action until #45 / #43.
 - `Cmd+Shift+O` would open the user's browser if mis-mapped; warn the user first.
