@@ -2,7 +2,7 @@
 
 `Cmd`-click on a URL in the output opens it in the default browser through macOS, bypassing Slotbar's link routing (no Slot opens it).
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence; browser tab user-reported (observed by the user, no recorded artifact)
 
 ## Sub-features
 

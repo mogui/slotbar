@@ -2,7 +2,7 @@
 
 The KeyboardShortcuts name `toggleTerminal` defaults to `Ctrl+Option+T` and is registered only while the Terminal is enabled.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-143906/evidence; default driven, on/off user-reported (observed by the user, no recorded artifact)
 
 ## Sub-features
 
@@ -20,7 +20,7 @@ Preconditions: `V launch` (off), `V show`, `oc hotkey --key CmdOrCtrl+W` to hide
 
 - **Off.** User presses `Ctrl+Option+T` in another app. `V doctor` shows no Panel window.
 - **On.** `V show`, Settings > Enable Terminal on, hide the Panel. User presses `Ctrl+Option+T`. `V doctor` shows the Panel window; `V shot 39-1-on` shows the Terminal.
-- **Default.** `defaults read io.github.mogui.slotbar.verify` has no `KeyboardShortcuts_toggleTerminal` key (default in use) and the recorder shows ⌃⌥T.
+- **Default.** `defaults delete io.github.mogui.slotbar.verify KeyboardShortcuts_toggleTerminal`, `V relaunch`: the app writes the default back (`carbonKeyCode` 17 = T, `carbonModifiers` 6144 = Control+Option) and the recorder in Settings > Terminal shows ⌃⌥T.
 
 ## Gotchas
 

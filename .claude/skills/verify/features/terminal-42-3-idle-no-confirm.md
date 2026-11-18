@@ -2,7 +2,7 @@
 
 Turning off or quitting with every tab idle at the prompt needs no confirmation.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-143906/evidence; turn-off in /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 
@@ -18,7 +18,7 @@ Status: pending
 Preconditions: `V launch --terminal`, `V show`, click `Terminal`, `Cmd+T` (two idle tabs).
 
 - **Off.** Click `Settings`, toggle off. No dialog (`V doctor` shows only the Panel window); `V shells` empty.
-- **Quit.** Toggle on again, `oc hotkey --key CmdOrCtrl+Q --allow-system-shortcut` (user approval). Process exits within 2 s with no dialog.
+- **Quit.** `V relaunch`, two idle tabs, `osascript -e 'tell application id "io.github.mogui.slotbar.verify" to quit'`. Process exits within 2 s; the app log has no `begin modal`.
 
 ## Gotchas
 

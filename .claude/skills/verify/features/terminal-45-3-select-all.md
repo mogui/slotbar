@@ -2,7 +2,7 @@
 
 `Cmd+A` selects the tab's whole scrollback, not just the screen.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 

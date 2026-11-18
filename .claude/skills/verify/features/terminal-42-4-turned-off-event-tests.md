@@ -2,7 +2,7 @@
 
 The session model handles the "Terminal turned off" event (busy tabs: ask; none: terminate all), with tests.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-125311/evidence
 
 ## Sub-features
 

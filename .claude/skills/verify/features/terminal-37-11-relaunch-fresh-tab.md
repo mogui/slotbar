@@ -2,7 +2,7 @@
 
 After quitting and relaunching Slotbar with the Terminal on, the Terminal starts with one fresh tab: new shell, no previous scrollback.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-143906/evidence
 
 ## Sub-features
 

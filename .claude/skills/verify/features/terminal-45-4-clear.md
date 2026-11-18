@@ -2,7 +2,7 @@
 
 `Cmd+K` clears the screen and the scrollback of the current tab only.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 

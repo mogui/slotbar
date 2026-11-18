@@ -2,7 +2,7 @@
 
 `Cmd+T` opens a tab; `Cmd+Shift+[` / `Cmd+Shift+]` select the previous / next tab.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 

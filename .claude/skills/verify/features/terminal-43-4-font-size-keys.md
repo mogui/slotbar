@@ -2,7 +2,7 @@
 
 `Cmd+=` / `Cmd+-` / `Cmd+0` enlarge, shrink and reset to the Settings size, for all tabs, without saving.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence; not-saved in /private/tmp/slotbar-verify/20261118-143906/evidence
 
 ## Sub-features
 

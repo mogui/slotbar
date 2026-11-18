@@ -2,7 +2,7 @@
 
 A bell on a tab that is not visible (another tab active, or the Terminal not shown) sets its flag; the flag clears when the tab becomes visible. Tested in the session model.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence; unit in /private/tmp/slotbar-verify/20261118-125311/evidence
 
 ## Sub-features
 

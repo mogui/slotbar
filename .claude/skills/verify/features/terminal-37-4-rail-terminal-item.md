@@ -2,7 +2,7 @@
 
 While the Terminal is on, the Rail shows the Terminal item after all Slot items and before the gear: SF Symbol `terminal`, no Profile color bar, active highlight, tooltip "Terminal", no right-click menu; absent while off; not in the Slot list.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence; right-click in /private/tmp/slotbar-verify/20261118-143906/evidence; tooltip user-reported (observed by the user, no recorded artifact)
 
 ## Sub-features
 
@@ -22,14 +22,14 @@ Status: pending
 
 Preconditions: `V launch --terminal`, `V show`.
 
-- **Order and look.** `V shot 37-4-rail` and `oc get-app-state`: Rail buttons in order `Example  ⌘1`, `Example Org  ⌘2`, `Terminal  ⌃⌥T`, `Settings`; in the shot the Terminal glyph has no blue bar, the Slot globes do.
+- **Order and look.** `V shot 37-4-rail` and `oc get-app-state`: Rail buttons in order `button Globe`, `button Globe`, `button` (Terminal), `button` (gear); in the shot the Terminal glyph sits third and has no blue bar, the Slot globes do.
 - **Highlight.** Click `Terminal`. `V shot 37-4-active`: the Terminal button has the accent background, the Slot button does not.
-- **Tooltip.** The element's help text in `oc get-app-state` is exactly `Terminal  ⌃⌥T`.
-- **No menu.** `oc click --element-index <Terminal> --mouse-button right`. Refused as `background` menu-opening or opens nothing; with `--restore-window` (user consent) no menu window appears in `V doctor`.
+- **Tooltip.** User step: the user hovers the Terminal icon and reads `Terminal  ⌃⌥T`. The `orca computer` tree carries no help text; RailItemsTests `terminalTooltip*` cover the string.
+- **No menu.** Right-click by window-local coordinates of the Terminal icon with `--restore-window` (user consent; element-index right-clicks are refused as `background_unavailable`): `V doctor` shows no new window. Control: the same right-click on a Slot globe opens its menu (a layer-101 window).
 - **Absent.** `V stop`, `V launch` (off), `V show`: no `Terminal` button; Settings > Slots lists Example and Example Org only.
 - **Tests.** `swift test --filter RailItemsTests`.
 
 ## Gotchas
 
 - Background right-clicks are refused by `orca computer` on macOS before anything is sent; the "no menu" proof needs `--restore-window`, which takes the user's screen: ask first.
-- Tooltips are not drawn in screenshots without hovering; rely on the accessibility help text.
+- Tooltips are not drawn in screenshots without hovering and are not in the `orca computer` tree; reading them is a user step.

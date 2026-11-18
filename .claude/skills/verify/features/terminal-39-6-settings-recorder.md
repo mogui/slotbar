@@ -2,7 +2,7 @@
 
 The Terminal Settings section has a hotkey recorder for `toggleTerminal`, disabled while the Terminal is off.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence; present/disabled driven, recording user-reported (observed by the user, no recorded artifact)
 
 ## Sub-features
 

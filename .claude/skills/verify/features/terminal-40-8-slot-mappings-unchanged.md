@@ -2,7 +2,7 @@
 
 With a Slot active, the Panel shortcuts behave as before the Terminal: `Cmd+R` reload, `Cmd+W` hide Panel, `Cmd+Shift+H` Home, `Cmd+Shift+O` open in browser, `Cmd+1..9` Slots; `Cmd+T` and `Cmd+K` are not taken by the Panel.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-143906/evidence
 
 ## Sub-features
 

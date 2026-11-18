@@ -2,7 +2,7 @@
 
 The Panel's active view is either a Slot or the Terminal; with the Terminal active, `Cmd+1..9` switches to that Slot.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 

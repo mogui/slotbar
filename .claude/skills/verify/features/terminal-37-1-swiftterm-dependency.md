@@ -2,7 +2,7 @@
 
 SwiftTerm is the second SwiftPM dependency and the Slotbar target stays in Swift 6 mode; the app builds and the Terminal renders with it.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-125311/evidence
 
 ## Sub-features
 

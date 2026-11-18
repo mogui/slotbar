@@ -2,7 +2,7 @@
 
 If the Terminal is the active view when it is turned off, the Panel switches to Slot 1.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 

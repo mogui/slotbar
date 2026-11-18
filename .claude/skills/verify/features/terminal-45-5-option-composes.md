@@ -2,7 +2,7 @@
 
 Option composes characters as in macOS (e.g. `@`, `#`, `[`, `]` on an Italian layout); it is not a Meta key.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-143906/evidence - user-reported (observed by the user, no recorded artifact)
 
 ## Sub-features
 

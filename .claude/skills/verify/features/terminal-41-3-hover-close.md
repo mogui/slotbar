@@ -2,7 +2,7 @@
 
 Hovering a tab shows a close button; closing goes through "close requested", so a busy tab asks for confirmation.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-143906/evidence - user-reported (observed by the user, no recorded artifact)
 
 ## Sub-features
 

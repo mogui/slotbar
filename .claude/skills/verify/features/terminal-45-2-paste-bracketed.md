@@ -2,7 +2,7 @@
 
 `Cmd+V` pastes the clipboard; when the program enables bracketed paste (`\e[?2004h`), the text is wrapped in `\e[200~` ... `\e[201~`.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 

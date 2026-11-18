@@ -2,7 +2,7 @@
 
 Each tab's title is the title its shell sets (OSC 0/2); the active tab becomes first responder on show and on tab switch.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 

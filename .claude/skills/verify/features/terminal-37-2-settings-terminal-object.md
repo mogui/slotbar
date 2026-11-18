@@ -2,7 +2,7 @@
 
 `settings.json` gains an optional `terminal` object with every field and default; a file without it reads as off with defaults and `schemaVersion` 1; out-of-range `fontSize` and unknown `theme` are handled; encode/decode round-trips.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 
@@ -19,7 +19,7 @@ Status: pending
 Preconditions: built app.
 
 - **Unit tests.** Run `swift test --filter SettingsStoreTests`. All pass.
-- **Missing object.** `V launch`, then `plutil -remove terminal "<run>/home/Library/Application Support/Slotbar/settings.json"`, `V relaunch`, `V show`. The Rail has no Terminal button (`oc get-app-state --query Terminal` finds none), both Slots are there. Click `Settings`, toggle "Enable Terminal" on: `V settings` shows `terminal` with `enabled true, fontSize 13, theme system, shellPath null, startDirectory null`, `schemaVersion` 1.
+- **Missing object.** `V launch`, then `plutil -remove terminal "<run>/home/Library/Application Support/Slotbar/settings.json"`, `V relaunch`, `V show`. The Rail has no Terminal button (`oc get-app-state`: the two `button Globe` Slot buttons, then only the unnamed gear `button`), both Slots are there. Click `Settings`, toggle "Enable Terminal" on: `V settings` shows `terminal` with `enabled true, fontSize 13, theme system, shellPath null, startDirectory null`, `schemaVersion` 1.
 - **Odd values.** Set `fontSize` 99 and `theme` "neon" with `plutil -replace`, `V relaunch`. Process alive, no `settings.corrupt-*` file in the settings directory, Slots intact. Turn the Terminal on in Settings: `V settings` shows `fontSize` 36 and `theme` "system".
 - **Proof.** `V settings` before/after into `<run>/evidence/37-2-*.json`, `ls` of the settings directory.
 

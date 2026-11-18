@@ -2,7 +2,7 @@
 
 A shell that fails to start leaves the tab showing the error and "Press Return to try again"; Return respawns with the current settings.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence; Return retry user-reported (observed by the user, no recorded artifact) (synthetic Return never reached the failed tab)
 
 ## Sub-features
 

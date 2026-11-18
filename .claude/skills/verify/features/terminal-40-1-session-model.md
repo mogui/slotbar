@@ -2,7 +2,7 @@
 
 A pure session model owns the tab list, active tab and titles; it takes events (open, select, next/previous, close requested, close confirmed, shell exited, shown/hidden) and returns effects (spawn shell, terminate shell, ask confirmation, hide Panel); it starts with one tab and never holds zero.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 

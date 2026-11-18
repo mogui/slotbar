@@ -2,7 +2,7 @@
 
 Panel shortcut matching takes whether the Terminal is active and defines every Terminal-active mapping: `Cmd+T`, `Cmd+W`, `Cmd+Shift+[`/`]`, `Cmd+K`, `Cmd+=`/`Cmd+-`/`Cmd+0`, `Cmd+R` consumed with no action, `Cmd+1..9` and `Cmd+Shift+H`/`O` unchanged (H/O no-op on the Terminal).
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 

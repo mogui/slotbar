@@ -2,7 +2,7 @@
 
 The tab bar appears only with two or more tabs; a single tab uses all the space.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 

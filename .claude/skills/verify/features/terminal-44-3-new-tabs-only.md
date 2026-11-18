@@ -2,7 +2,7 @@
 
 Changing shell or starting directory affects tabs spawned afterwards; running tabs keep their shell and directory.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 

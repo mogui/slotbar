@@ -2,7 +2,7 @@
 
 The flagged tab shows a dot in the tab bar until it becomes visible.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 

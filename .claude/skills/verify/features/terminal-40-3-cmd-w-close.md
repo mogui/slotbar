@@ -2,7 +2,7 @@
 
 `Cmd+W` closes the current tab; on the last tab it replaces it with a fresh shell and hides the Panel.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 

@@ -2,7 +2,7 @@
 
 Double-clicking the empty part of the tab bar opens a new tab.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 

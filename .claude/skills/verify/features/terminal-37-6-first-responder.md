@@ -2,7 +2,7 @@
 
 Whenever the Terminal becomes visible (Rail click, Panel shown on the Terminal) the active tab is first responder: typing goes to the shell without a click.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 
@@ -19,7 +19,7 @@ Status: pending
 Preconditions: `V launch --terminal`, `V show`.
 
 - **Rail.** Click `Terminal`; without clicking the terminal area, `oc type-text --text 'touch ~/fr-rail'` + Return. `<run>/home/fr-rail` exists.
-- **Re-show.** the user presses `Ctrl+Option+T` (Terminal shown and key: hides the Panel; `Cmd+W` would close the tab), `V show` (reopens on the Terminal), type `touch ~/fr-reshow` + Return. File exists.
+- **Re-show.** Hide the Panel on the Terminal: `Cmd+W` on the last tab (hides and respawns its shell), or the user presses `Ctrl+Option+T`. `V show` (reopens on the Terminal), type `touch ~/fr-reshow` + Return. File exists.
 - **From Settings.** Click `Settings`, click `Terminal`, type `touch ~/fr-settings` + Return. File exists.
 - **Proof.** `ls <run>/home` and a shot after each step.
 

@@ -2,7 +2,7 @@
 
 The Rail Terminal tooltip shows "Terminal" plus the hotkey, and follows a changed hotkey.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-143906/evidence - user-reported (observed by the user, no recorded artifact)
 
 ## Sub-features
 
@@ -18,10 +18,10 @@ Status: pending
 
 Preconditions: `V launch --terminal`, `V show`.
 
-- **Default.** `oc get-app-state --query Terminal`: the Rail button's help is `Terminal  ⌃⌥T`.
-- **Follows.** Change the hotkey (terminal-39-6), re-read the help text: new combination, no relaunch.
-- **Cleared.** Clear the recorder (its x button), re-read: `Terminal`.
-- **Proof.** tree excerpts saved to `<run>/evidence/39-7-*.txt`.
+- **Default.** User step: the user hovers the Terminal icon and reads `Terminal  ⌃⌥T` (the `orca computer` tree carries no help text; RailItemsTests `terminalTooltip*` cover the string).
+- **Follows.** Change the hotkey (terminal-39-6), the user hovers again: new combination, no relaunch.
+- **Cleared.** Clear the recorder (its x button), the user hovers again: `Terminal`.
+- **Proof.** the user's report of each tooltip, `defaults read io.github.mogui.slotbar.verify KeyboardShortcuts_toggleTerminal` after each change.
 
 ## Gotchas
 

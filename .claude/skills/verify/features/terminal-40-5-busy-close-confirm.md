@@ -2,7 +2,7 @@
 
 Close requested on a busy tab (the pty's foreground process group differs from the shell pid) asks for confirmation; otherwise the tab closes at once.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 

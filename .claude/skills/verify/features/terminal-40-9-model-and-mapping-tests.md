@@ -2,7 +2,7 @@
 
 Session model rules are unit-tested in SlotLifecycleTests style; every Terminal-active mapping is tested in PanelShortcutTests.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-125311/evidence
 
 ## Sub-features
 

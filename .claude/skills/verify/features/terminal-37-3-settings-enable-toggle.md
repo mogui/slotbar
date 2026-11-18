@@ -2,7 +2,7 @@
 
 Settings has a "Terminal" section next to General, Profiles and Slots with the "Enable Terminal" toggle; off by default; written immediately.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 
@@ -19,8 +19,8 @@ Status: pending
 
 Preconditions: `V launch` (Terminal off), `V show`.
 
-- **Open Settings.** Click the Rail button with help `Settings`. `oc get-app-state --query Terminal` shows a section "Terminal" and a switch "Enable Terminal" with value 0.
-- **Turn on.** Click the switch. `V settings` shows `"enabled" : true` immediately; `oc get-app-state --query Terminal` now also finds the Rail button `Terminal`; `V shells` lists one `-zsh`.
+- **Open Settings.** Click the Rail button with help `Settings`. `oc get-app-state` shows `heading Terminal`, `text Enable Terminal` and right after it an unlabelled `switch, Value: 0`.
+- **Turn on.** Click the switch. `V settings` shows `"enabled" : true` immediately; the Rail gains an unnamed `button` between the `button Globe` Slot buttons and the gear; `V shells` lists one `-zsh`.
 - **Turn off.** Click the switch again. `enabled` false, Rail button gone, `V shells` empty.
 - **Proof.** `V shot 37-3-off`, `V shot 37-3-on`, `V settings` after each click.
 

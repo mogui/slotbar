@@ -2,7 +2,7 @@
 
 The Terminal is created on enable and destroyed with its shells terminated on disable; Slot lifecycle and memory pressure never unload it; shells keep running while the Panel is hidden.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence; 37-9-memory not driven: the user declined memory_pressure; 37-9-slot-lifecycle by code reading and SlotLifecycleTests
 
 ## Sub-features
 

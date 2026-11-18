@@ -2,7 +2,7 @@
 
 The Terminal Settings section has a theme picker and a font size stepper (9-36), disabled while off, written immediately; a Settings change applies live to all tabs.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 
@@ -20,7 +20,7 @@ Status: pending
 Preconditions: `V launch`, `V show`, click `Settings`.
 
 - **Disabled.** `oc get-app-state --query Terminal`: picker and stepper disabled.
-- **Enable and change.** Toggle on; set theme `dracula`; increment the stepper 3 times. `V settings`: `theme dracula`, `fontSize 16`.
+- **Enable and change.** Toggle on; set theme `dracula` (popup: see terminal-43-1); increment the stepper 3 times (`oc perform-secondary-action --action increment`). `V settings`: `theme dracula`, `fontSize 16`.
 - **Range.** Decrement past 9, increment past 36: values clamp.
 - **Live, all tabs.** Click `Terminal`, `Cmd+T`, type `stty size > ~/s1` in each tab; change the size in Settings; back in each tab `stty size > ~/s2`: both tabs' sizes changed (fewer rows/cols with a bigger font).
 

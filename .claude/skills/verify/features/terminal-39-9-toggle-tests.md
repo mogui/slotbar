@@ -2,7 +2,7 @@
 
 Unit tests cover the four Terminal hotkey outcomes and the last-view fallback (PanelToggleTests, SlotSelectionTests style).
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-125311/evidence
 
 ## Sub-features
 

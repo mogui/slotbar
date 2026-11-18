@@ -2,7 +2,7 @@
 
 `shellPath` null uses `$SHELL`; `startDirectory` null uses home; a leading `~` expands to home.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 

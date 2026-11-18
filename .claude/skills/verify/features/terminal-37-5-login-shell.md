@@ -2,7 +2,7 @@
 
 Clicking the Terminal item shows one tab running the login shell (argv[0] prefixed with `-`) from `$SHELL` in the home directory, with the app environment plus `TERM=xterm-256color`, in SF Mono at the settings size.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence
 
 ## Sub-features
 

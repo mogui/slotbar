@@ -5,19 +5,19 @@ One file per acceptance criterion of the Terminal tickets (spec `docs/terminal-s
 ## File names and status
 
 - `terminal-<issue>-<k>-<slug>.md`: `<k>` is the criterion's position in the issue's "Acceptance criteria" list, counted from 1.
-- Each file has a `Status:` line under its title: `pending` (never driven live), or `passed <date> <evidence dir>` / `failed <date> <evidence dir> - <reason>` after a live run. Only a live run through the recipe changes it.
+- Each file has a `Status:` line under its title: `pending` (never driven live), or `passed <date> <evidence dir>` / `failed <date> <evidence dir> - <reason>` after a live run. Only a live run through the recipe changes it. A note after the evidence dir names sub-features that ran elsewhere or were not driven; `user-reported` marks a step the user performed and reported (global hotkeys, hover, system appearance, Option keys) with no recorded artifact.
 
 ## Baseline preconditions
 
 - `V` = `.claude/skills/verify/scripts/slotbar-verify`; `oc <action>` = `orca computer <action> --app io.github.mogui.slotbar.verify --json`.
-- Build first (`V build`), then `V launch --terminal` unless the recipe says otherwise, `V show`, `V doctor`. Doctor must show the process alive, revision = worktree HEAD, one layer-3 window, `accessibility: ok`.
+- Build first (`V build`), then `V launch --terminal` unless the recipe says otherwise, `V show`, `V doctor` (after the show: Accessibility is read through the Panel). Doctor must show the process alive, revision = worktree HEAD, one layer-3 window, `accessibility: ok`.
 - Seeded state: Profile "Verify", Slot 1 "Example" (https://example.com), Slot 2 "Example Org" (https://example.org), Panel on the right edge, hide on focus loss off.
 - The isolated home is `<run>/home` (`<run>` from `V doctor`); new shells start there.
 - Never drive the user's own Slotbar (`/Applications/Slotbar.app`, bundle id `io.github.mogui.slotbar`).
 
 ## Driving conventions
 
-- Enter the Terminal by clicking the Rail button with help text `Terminal` (`oc get-app-state --query Terminal`, then `oc click --element-index <i>`).
+- Enter the Terminal by clicking its Rail button: in `oc get-app-state` the first unnamed `button` after the `button Globe` Slot buttons (`button Terminal, bell` while a tab is flagged), then `oc click --element-index <i>`. Tooltips are not in the tree; reading one is a user step (hover).
 - Type in a tab with `oc type-text --text '<cmd>'` + `oc press-key --key Return`. Results come back `unverified (text mismatch)` because the terminal view has no text field: prove the effect with `V shot` or a file the command writes under `<run>/home`.
 - Make proofs observable outside the pixels when possible: commands that write to `<run>/home/<file>`, `V shells` (pid, `-zsh`, tty, cwd), `V settings`, `V logs` (category `Terminal`).
 - One action, then a shot: `V shot <feature>-<step>`.

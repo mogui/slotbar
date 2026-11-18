@@ -2,7 +2,7 @@
 
 The Panel hotkey (and `V show`) reopens the last active view; if that is the Terminal and the Terminal has been turned off, Slot 1.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-141653/evidence; V show and fallback driven, Panel hotkey user-reported (observed by the user, no recorded artifact)
 
 ## Sub-features
 

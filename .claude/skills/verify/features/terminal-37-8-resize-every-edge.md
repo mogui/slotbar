@@ -2,7 +2,7 @@
 
 Resizing the Panel changes the Terminal's rows and columns, so full-screen programs redraw; this holds with the Panel on the left, right, top and bottom edges.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-143906/evidence
 
 ## Sub-features
 
@@ -25,5 +25,5 @@ Preconditions: `V launch --terminal --edge <edge>` per edge, `V show`, click `Te
 
 ## Gotchas
 
-- Drags in background may be ignored by AppKit resize handles; if the window frame in `V doctor` does not change, the drag needs `--restore-window` (ask the user).
-- Panel depth is saved to settings on resize; each edge run starts from the seed, so use a new `V launch` per edge.
+- Background `oc drag` on the handle resizes the Panel, but the resulting depth does not track the drag distance (sometimes it grows when dragged inward); prove the criterion with `stty size` before and after a drag that changed the frame in `V doctor`, not with a target width.
+- Panel depth is saved to settings on resize. A Panel edge changed in Settings > General applies on the next show: `Cmd+1`, `Cmd+W`, `V show`, then click `Terminal`.

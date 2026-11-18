@@ -2,7 +2,7 @@
 
 The cursor is a blinking block; each tab keeps 10,000 lines of scrollback.
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-143906/evidence
 
 ## Sub-features
 

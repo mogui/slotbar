@@ -2,7 +2,7 @@
 
 Panel hidden: the Terminal hotkey shows it on the Terminal. One of the four Terminal hotkey outcomes (spec "Panel, Rail and show/hide").
 
-Status: pending
+Status: passed 2026-11-18 /private/tmp/slotbar-verify/20261118-143906/evidence - user-reported (observed by the user, no recorded artifact)
 
 ## Sub-features
 
