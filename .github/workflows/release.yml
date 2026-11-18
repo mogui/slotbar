@@ -10,9 +10,13 @@ permissions:
 
 jobs:
   release:
-    runs-on: macos-15-intel
+    # arm64 host: the x86_64 slice runs SwiftTerm's build tool, compiled for x86_64, under Rosetta.
+    # An Intel host cannot run the arm64 one.
+    runs-on: macos-15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - run: /usr/bin/pgrep -q oahd || sudo softwareupdate --install-rosetta --agree-to-license
       - run: scripts/release.sh "$GITHUB_REF_NAME"
         env:
           GH_TOKEN: ${{ github.token }}
