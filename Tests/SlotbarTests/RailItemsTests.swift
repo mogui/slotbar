@@ -99,4 +99,14 @@ import Testing
         #expect(items[8].tooltip == "S9  ⌘9")
         #expect(items[9].tooltip == "Terminal")
     }
+
+    @Test func terminalTooltipShowsTheTerminalHotkey() {
+        let items = railItems(settings: Self.withTerminal([]), activeView: nil, terminalHotkey: "⌃⌥T")
+        #expect(items.map(\.tooltip) == ["Terminal  ⌃⌥T"])
+    }
+
+    @Test func terminalTooltipWithTheHotkeyClearedIsTerminal() {
+        let items = railItems(settings: Self.withTerminal([]), activeView: nil, terminalHotkey: nil)
+        #expect(items.map(\.tooltip) == ["Terminal"])
+    }
 }

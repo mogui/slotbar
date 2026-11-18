@@ -34,7 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let panel = PanelController(settingsStore: store, favicons: favicons)
         panel.onSlotAction = { [weak self] id, action in self?.perform(action, on: id) }
         panelController = panel
-        hotkey = Hotkey { panel.toggle() }
+        hotkey = Hotkey(onKeyDown: { panel.toggle() }, onTerminalKeyDown: { panel.toggleTerminal() })
         let openAtLogin = OpenAtLogin(service: MainAppLoginItem(), store: store)
         openAtLogin.healAtLaunch()
         panel.settingsPane = SettingsPane(store: store, hotkey: hotkey, openAtLogin: openAtLogin,
@@ -93,6 +93,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if NSApp.activationPolicy() != policy { NSApp.setActivationPolicy(policy) }
         slotRegistry.apply(settings) { makeSlotController($0, favicons: favicons, panel: panelController) }
         applyTerminal(settings.terminal.enabled)
+        hotkey?.setTerminalEnabled(settings.terminal.enabled)
         panelController.update(settings: settings, controllers: slotRegistry.controllers, terminal: terminal)
         refreshBadges()
     }

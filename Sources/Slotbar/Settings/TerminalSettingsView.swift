@@ -1,3 +1,4 @@
+import KeyboardShortcuts
 import SwiftUI
 
 /// Settings, Terminal section (Terminal spec, Settings UI). The toggle writes immediately; turning it off
@@ -11,6 +12,10 @@ struct TerminalSettingsView: View {
                 get: { store.settings.terminal.enabled },
                 set: { value in store.update { $0.terminal.enabled = value } }
             ))
+            LabeledContent("Terminal hotkey") {
+                KeyboardShortcuts.Recorder(for: .toggleTerminal)
+            }
+            .disabled(!store.settings.terminal.enabled)
         }
     }
 }

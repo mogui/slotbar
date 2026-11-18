@@ -23,5 +23,7 @@ Preconditions: `V launch --terminal`, `V show`.
 
 ## Gotchas
 
+- Implemented in #37 (`viewToShow`); #39 adds no code for it. Covered by SlotSelectionTests `showRestoresTheTerminalWhileItIsEnabled` and `terminalTurnedOffFallsBackToSlot1`.
+
 - Global hotkeys are Carbon hotkeys: they fire only on real keyboard events at the system level. `oc hotkey` posts to the app and does not trigger them. The live pass needs the user to press the hotkey (or an approved `--restore-window` run that proves otherwise); report "not driven: global hotkey" if neither is available.
 - The user's own Slotbar may hold the same combinations; the verify copy uses its own UserDefaults (bundle id `io.github.mogui.slotbar.verify`), so its Terminal hotkey defaults to `Ctrl+Option+T` independently. If registration fails, `V logs` shows it; ask the user to quit their Slotbar for the run.

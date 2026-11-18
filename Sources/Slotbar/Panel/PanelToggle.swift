@@ -10,6 +10,13 @@ struct PanelToggle {
         return isKey ? .hide : .makeKey
     }
 
+    /// Terminal hotkey (Terminal spec, Panel, Rail and show/hide): `.show` shows the Panel on the Terminal, or
+    /// switches to it from a Slot or Settings. `terminalShown` is true when the Terminal is the view on screen.
+    func terminalToggle(isVisible: Bool, isKey: Bool, terminalShown: Bool) -> Action {
+        guard isVisible, terminalShown else { return .show }
+        return isKey ? .hide : .makeKey
+    }
+
     mutating func statusMouseDown(isVisible: Bool, isKey: Bool) {
         statusClickState = (isVisible, isKey)
     }

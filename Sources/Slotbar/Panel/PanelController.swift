@@ -1,4 +1,5 @@
 import AppKit
+import KeyboardShortcuts
 import WebKit
 
 private let log = Log.logger("Panel")
@@ -57,6 +58,10 @@ final class PanelController: NSObject {
         NotificationCenter.default.addObserver(
             self, selector: #selector(screensDidChange(_:)),
             name: NSApplication.didChangeScreenParametersNotification, object: nil)
+        // A recorded Terminal hotkey changes the Rail tooltip; it is not a Settings change.
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(shortcutDidChange(_:)),
+            name: Notification.Name("KeyboardShortcuts_shortcutByNameDidChange"), object: nil)
     }
 
     /// Replaces the Slot list and the Terminal shown in the Rail; keeps the active view when it still exists,
@@ -110,6 +115,23 @@ final class PanelController: NSObject {
     /// Global hotkey toggle (SPEC 4.5).
     func toggle() {
         perform(policy.toggle(isVisible: isShowing, isKey: isKey))
+    }
+
+    /// Terminal hotkey (Terminal spec, Panel, Rail and show/hide).
+    func toggleTerminal() {
+        guard terminal != nil else { return }
+        let terminalShown = activeView == .terminal && !showsSettings
+        switch policy.terminalToggle(isVisible: isShowing, isKey: isKey, terminalShown: terminalShown) {
+        case .show:
+            activeView = .terminal
+            show()
+            // Also when `show()` found the window still visible and activated nothing; makes the tab first responder.
+            activate(.terminal)
+        case .makeKey:
+            window.makeKey()
+        case .hide:
+            hide()
+        }
     }
 
     /// Status icon mouse-down: records visibility so the click never hides and re-shows.
@@ -319,7 +341,9 @@ final class PanelController: NSObject {
         for controller in controllers {
             if let state = controller.unread { unread[controller.slot.id] = state }
         }
-        rail.update(items: railItems(settings: settings, activeView: showsSettings ? nil : activeView, unread: unread),
+        let hotkey = KeyboardShortcuts.getShortcut(for: .toggleTerminal)?.description
+        rail.update(items: railItems(settings: settings, activeView: showsSettings ? nil : activeView, unread: unread,
+                                     terminalHotkey: hotkey),
                     settingsActive: showsSettings) { [favicons] in favicons.image(for: $0) }
     }
 
@@ -380,6 +404,10 @@ final class PanelController: NSObject {
                 }
             }
         }
+    }
+
+    @objc private func shortcutDidChange(_ notification: Notification) {
+        refreshRail()
     }
 
     /// Display change (SPEC 4.2): re-apply the collection behavior, hide if the Panel's screen is gone.

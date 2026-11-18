@@ -8,6 +8,8 @@ private let log = Log.logger("App")
 extension KeyboardShortcuts.Name {
     /// Global Panel toggle, default `Ctrl+Option+S` (SPEC 9).
     nonisolated(unsafe) static let togglePanel = Self("togglePanel", default: .init(.s, modifiers: [.control, .option]))
+    /// Terminal hotkey, default `Ctrl+Option+T`; registered only while the Terminal is on (Terminal spec).
+    nonisolated(unsafe) static let toggleTerminal = Self("toggleTerminal", default: .init(.t, modifiers: [.control, .option]))
 }
 
 /// Registers the global hotkey and tracks whether its registration failed (SPEC 9).
@@ -17,16 +19,22 @@ extension KeyboardShortcuts.Name {
 final class Hotkey {
     private(set) var isUnavailable = false
 
-    init(onKeyDown: @escaping @MainActor () -> Void) {
+    init(onKeyDown: @escaping @MainActor () -> Void, onTerminalKeyDown: @escaping @MainActor () -> Void) {
         // KeyboardShortcuts ignores RegisterEventHotKey failures, so probe before it registers.
         isUnavailable = !Self.canRegister(KeyboardShortcuts.getShortcut(for: .togglePanel))
         KeyboardShortcuts.onKeyDown(for: .togglePanel) { MainActor.assumeIsolated { onKeyDown() } }
+        KeyboardShortcuts.onKeyDown(for: .toggleTerminal) { MainActor.assumeIsolated { onTerminalKeyDown() } }
         NotificationCenter.default.addObserver(
             forName: Notification.Name("KeyboardShortcuts_shortcutByNameDidChange"), object: nil, queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.reprobe() }
         }
         if isUnavailable { log.error("Global hotkey registration failed") }
+    }
+
+    /// Registers the Terminal hotkey while the Terminal is on; off, the key combination stays free for other apps.
+    func setTerminalEnabled(_ enabled: Bool) {
+        if enabled { KeyboardShortcuts.enable(.toggleTerminal) } else { KeyboardShortcuts.disable(.toggleTerminal) }
     }
 
     /// Re-probes after a recorder change, with KeyboardShortcuts' own registration lifted so it does not collide.

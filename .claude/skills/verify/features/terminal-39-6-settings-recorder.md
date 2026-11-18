@@ -18,6 +18,7 @@ Status: pending
 
 Preconditions: `V launch` (off), `V show`, click `Settings`, scroll to Terminal.
 
+- Label: `Terminal hotkey`, right after "Enable Terminal". No "could not be registered" warning exists for this hotkey (only the Panel hotkey has one).
 - **Disabled.** `oc get-app-state --query Terminal`: the recorder element is disabled.
 - **Enabled.** Toggle "Enable Terminal" on: recorder enabled, value ⌃⌥T.
 - **Change.** Click the recorder, user presses `Ctrl+Option+Y` (a recorder needs real keys). `defaults read io.github.mogui.slotbar.verify KeyboardShortcuts_toggleTerminal` shows the new combination. Hide the Panel; user presses `Ctrl+Option+Y`: Panel shows on the Terminal.

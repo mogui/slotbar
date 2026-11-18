@@ -17,7 +17,7 @@ Status: pending
 
 Preconditions: worktree at the ticket's commit.
 
-- **Run.** `swift test --filter "PanelToggleTests|SlotSelectionTests"` (plus the new suite name if the ticket adds one). Exit 0; the output lists one test per outcome and one for the fallback.
+- **Run.** `swift test --filter "PanelToggleTests|SlotSelectionTests"` (no new suite: the outcome tests are `terminalHotkey*` in PanelToggleTests, the tooltip tests `terminalTooltip*` in RailItemsTests). Exit 0; the output lists one test per outcome and one for the fallback.
 - **Proof.** Save the output to `<run>/evidence/39-9-tests.txt` (or `/private/tmp/slotbar-verify/tests/` without a run).
 
 ## Gotchas

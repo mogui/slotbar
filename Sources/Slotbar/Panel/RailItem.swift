@@ -20,7 +20,9 @@ struct RailItem: Equatable {
 
 /// One item per Slot in list order, then the Terminal while it is enabled.
 /// Slot tooltip: label (Home host while null), plus `⌘N` for the first nine. `unread` holds loaded Slots only.
-func railItems(settings: Settings, activeView: PanelView?, unread: [UUID: UnreadState] = [:]) -> [RailItem] {
+/// Terminal tooltip: "Terminal" plus `terminalHotkey` when one is set.
+func railItems(settings: Settings, activeView: PanelView?, unread: [UUID: UnreadState] = [:],
+               terminalHotkey: String? = nil) -> [RailItem] {
     var items = settings.slots.enumerated().map { index, slot in
         let name = slot.label ?? slot.url.host() ?? slot.url.absoluteString
         let color = settings.profiles.first { $0.id == slot.profileId }?.color ?? ""
@@ -32,7 +34,7 @@ func railItems(settings: Settings, activeView: PanelView?, unread: [UUID: Unread
                         badge: unread[slot.id].flatMap { badgeText(Badge($0)) })
     }
     if settings.terminal.enabled {
-        items.append(RailItem(view: .terminal, tooltip: "Terminal", color: nil,
+        items.append(RailItem(view: .terminal, tooltip: terminalHotkey.map { "Terminal  \($0)" } ?? "Terminal", color: nil,
                               isActive: activeView == .terminal, notifications: false))
     }
     return items
