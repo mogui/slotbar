@@ -15,6 +15,7 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
     private static let startFailureWindow: TimeInterval = 2
     /// Hosts the active tab's view; the Panel shows this.
     let view = NSView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+    private let tabBar = TerminalTabBarView()
     /// Closing the last tab hides the Panel.
     var onHidePanel: (() -> Void)?
 
@@ -22,6 +23,10 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
         self.settingsStore = settingsStore
         super.init()
         view.autoresizesSubviews = true
+        tabBar.autoresizingMask = [.width, .minYMargin]
+        tabBar.onSelect = { [weak self] id in self?.selectTab(id) }
+        tabBar.onClose = { [weak self] id in self?.closeTab(id) }
+        tabBar.onNewTab = { [weak self] in self?.openTab() }
         perform(session.tabs.map { .spawnShell($0.id) })
     }
 
@@ -41,8 +46,10 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
     func selectNextTab() { handle(.selectNext) }
     func selectPreviousTab() { handle(.selectPrevious) }
 
-    func closeActiveTab() {
-        let id = session.activeTab
+    func selectTab(_ id: Int) { handle(.select(id)) }
+    func closeActiveTab() { closeTab(session.activeTab) }
+
+    func closeTab(_ id: Int) {
         handle(.closeRequested(id, busy: tabViews[id]?.isBusy ?? false))
     }
 
@@ -70,15 +77,27 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
         showActiveTab()
     }
 
-    /// Puts the active tab's view in the container and gives it the keyboard if the Terminal is on screen.
+    /// Puts the tab bar (two or more tabs) and the active tab's view in the container and gives the tab
+    /// the keyboard if the Terminal is on screen.
     private func showActiveTab() {
+        let items = terminalTabBar(tabs: session.tabs, activeTab: session.activeTab) { [tabViews] id in
+            URL(fileURLWithPath: tabViews[id]?.spawnedShell ?? "").lastPathComponent
+        }
+        tabBar.update(items: items)
+        let barHeight = items.isEmpty ? 0 : TerminalTabBarView.height
+        if items.isEmpty {
+            tabBar.removeFromSuperview()
+        } else if tabBar.superview == nil {
+            tabBar.frame = NSRect(x: 0, y: view.bounds.height - barHeight, width: view.bounds.width, height: barHeight)
+            view.addSubview(tabBar)
+        }
         guard let active = tabViews[session.activeTab] else { return }
         if active.superview !== view {
-            view.subviews.forEach { $0.removeFromSuperview() }
-            active.frame = view.bounds
+            view.subviews.filter { $0 !== tabBar }.forEach { $0.removeFromSuperview() }
             active.autoresizingMask = [.width, .height]
             view.addSubview(active)
         }
+        active.frame = NSRect(x: 0, y: 0, width: view.bounds.width, height: view.bounds.height - barHeight)
         view.window?.makeFirstResponder(active)
     }
 
@@ -95,13 +114,13 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
         let launch = shellLaunch(shellPath: terminal.shellPath, startDirectory: terminal.startDirectory,
                                  environment: ProcessInfo.processInfo.environment,
                                  home: FileManager.default.homeDirectoryForCurrentUser.path)
+        tab.spawnedShell = launch.executable
         if let error = shellStartError(executable: launch.executable, directory: launch.directory) {
             showStartFailure(error, in: tab)
             return
         }
         log.info("Spawning \(launch.executable, privacy: .public)")
         tab.spawnedAt = Date()
-        tab.spawnedShell = launch.executable
         tab.startProcess(executable: launch.executable, environment: launch.environment,
                          execName: launch.execName, currentDirectory: launch.directory)
     }

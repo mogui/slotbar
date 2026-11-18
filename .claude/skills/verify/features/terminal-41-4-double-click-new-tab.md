@@ -17,10 +17,11 @@ Status: pending
 
 Preconditions: `V launch --terminal`, `V show`, click `Terminal`, `Cmd+T` (two tabs).
 
-- **Empty area.** From `V shot`, pick a point in the strip right of the last tab; `oc click --x <x> --y <y> --click-count 2` (check `oc click --help` for the multi-click flag). `V shells`: 3.
+- **Empty area.** Tabs are left-aligned, each `min(200 pt, bar width / tab count)` wide, so with two tabs and a Panel wider than 400 pt the empty part starts at x = 400 pt in the 28 pt strip at the top. From `V shot`, pick a point there; `oc click --x <x> --y <y> --click-count 2` (check `oc click --help` for the multi-click flag). `V shells`: 3.
 - **On a tab.** Double-click a tab: `V shells` unchanged.
 
 ## Gotchas
 
 - Coordinates are window-local; take them from the latest shot and its `scale`.
+- With tabs filling the whole width (narrow Panel or many tabs) there is no empty part; widen the Panel or use fewer tabs.
 - If background multi-clicks are refused, ask the user before `--restore-window`.
