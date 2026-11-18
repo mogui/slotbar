@@ -46,6 +46,13 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
         handle(.closeRequested(id, busy: tabViews[id]?.isBusy ?? false))
     }
 
+    /// Clears the active tab's screen and scrollback in the view; a shell at its prompt gets Ctrl+L to redraw it.
+    func clearActiveTab() {
+        guard let tab = tabViews[session.activeTab] else { return }
+        tab.feed(text: "\u{1b}[3J\u{1b}[2J\u{1b}[H")
+        if !tab.isBusy && tab.onRetry == nil { tab.send([0x0c]) }
+    }
+
     func setShown(_ shown: Bool) {
         if shown != session.isShown { handle(.shown(shown)) }
     }
@@ -85,6 +92,7 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
     private func spawnTab(_ id: Int) {
         let tab = ShellTerminalView(frame: view.bounds)
         tab.processDelegate = self
+        tab.optionAsMetaKey = false // Option composes characters (e.g. "@", "[" on an Italian layout)
         tab.font = .monospacedSystemFont(ofSize: settingsStore.settings.terminal.fontSize, weight: .regular)
         tabViews[id] = tab
         spawnShell(in: tab)

@@ -25,3 +25,4 @@ Preconditions: user consent (a browser tab will open); `V launch --terminal`, `V
 
 - Opens a tab in the user's browser: ask first and close it afterwards.
 - Slot 1 is example.com too; the `verify=45-6` query string separates a routed load from the browser one.
+- Built: SwiftTerm's default opener (no Slotbar override): `NSWorkspace` after its link-safety check. Holding Cmd while hovering underlines the link. Custom URL schemes show a confirmation first; unsafe local files are blocked. Plain URLs only, so use `https://`.
