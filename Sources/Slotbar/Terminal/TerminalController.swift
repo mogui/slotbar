@@ -18,6 +18,8 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
     private var fontSize: Double
     /// An exit sooner than this after the spawn may be a start failure (`isStartFailure`); later exits are shell exits.
     private static let startFailureWindow: TimeInterval = 2
+    /// Gap between the Terminal text and the Panel edges, painted with the theme background.
+    private static let margin: CGFloat = 8
     /// Hosts the active tab's view; the Panel shows this.
     let view = NSView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
     private let tabBar = TerminalTabBarView()
@@ -34,6 +36,7 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
         fontSize = terminal.fontSize
         super.init()
         view.autoresizesSubviews = true
+        view.wantsLayer = true
         tabBar.autoresizingMask = [.width, .minYMargin]
         tabBar.onSelect = { [weak self] id in self?.selectTab(id) }
         tabBar.onClose = { [weak self] id in self?.closeTab(id) }
@@ -91,6 +94,7 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
         })
         tab.nativeForegroundColor = nsColor(palette.foreground)
         tab.nativeBackgroundColor = nsColor(palette.background)
+        view.layer?.backgroundColor = nsColor(palette.background).cgColor
         tab.caretColor = nsColor(palette.cursor)
         tab.selectedTextBackgroundColor = nsColor(palette.selection)
         tab.selectedTextForegroundColor = nsColor(palette.foreground)
@@ -166,6 +170,7 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
             style(active)
         }
         active.frame = NSRect(x: 0, y: 0, width: view.bounds.width, height: view.bounds.height - barHeight)
+            .insetBy(dx: Self.margin, dy: Self.margin)
         view.window?.makeFirstResponder(active)
     }
 
