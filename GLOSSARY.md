@@ -1,7 +1,7 @@
 # Glossary
 
 **Slot**
-A configured pairing of a starting URL with one Profile. Its position in the ordered Slot list is N; the first nine are reachable with `Cmd+1..9`. Several Slots may share the same URL and Profile.
+A configured pairing of a starting URL with one Profile. Its position in the ordered Slot list is N; the first nine are reachable with `Cmd+1..9`. Several Slots may share the same URL and Profile. The Terminal is not a Slot and is not in the Slot list.
 _Avoid_: tab, service
 
 **Profile**
@@ -9,7 +9,7 @@ An isolated browsing session tied to one Google account, identified by a name an
 _Avoid_: session, account
 
 **Panel**
-The window that slides in from a configurable screen edge, on the screen under the pointer, on the global hotkey or a click on the status bar icon; it shows the Rail and the active Slot.
+The window that slides in from a configurable screen edge, on the screen under the pointer, on the global hotkey or a click on the status bar icon; it shows the Rail and the active view: a Slot, or the Terminal when it is on.
 _Avoid_: popup, browser window
 
 **Keep-alive**
@@ -26,7 +26,7 @@ The state of a Slot whose page has been destroyed to free memory; it keeps only 
 _Avoid_: suspended, sleeping
 
 **Rail**
-The always-visible strip along the Panel's outer side holding one icon per Slot in list order (favicon, Profile-color indicator, unread badge); clicking an icon makes its Slot active, right-clicking offers Go home, Open current page in browser, Reload and the Slot's Notifications toggle.
+The always-visible strip along the Panel's outer side holding one icon per Slot in list order (favicon, Profile-color indicator, unread badge), then the Terminal icon while the Terminal is on, then the Settings gear; clicking an icon makes its Slot (or the Terminal) active, right-clicking a Slot icon offers Go home, Open current page in browser, Reload and the Slot's Notifications toggle.
 _Avoid_: tab bar, sidebar, dock
 
 **Child window**
@@ -40,3 +40,11 @@ _Avoid_: mute, do not disturb
 **Unread state**
 What a loaded Slot reports to the badge: a count N, "count unknown" (unread exists, number not known, shown as a dot), or none; a failing source keeps the last known value. The status bar badge sums counts once per Profile and home host and adds a dot when any Slot is "count unknown"; Unloaded Slots contribute nothing.
 _Avoid_: unread count (when the number may be unknown)
+
+**Terminal**
+The built-in native terminal shown in the Panel as an alternative to the active Slot, turned on in Settings and off by default. It has no URL, no Profile, no Keep-alive and no Notifications setting; it is reached from its Rail icon or its own global hotkey, holds one or more Terminal tabs and is never unloaded while on.
+_Avoid_: console, shell Slot
+
+**Terminal tab**
+One shell session inside the Terminal: a login shell running in its own pty, with the title the shell sets and a bell flag. The Terminal always holds at least one while on; closing or exiting the last one replaces it with a fresh tab.
+_Avoid_: Slot, window
