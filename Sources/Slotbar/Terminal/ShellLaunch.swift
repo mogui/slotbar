@@ -40,3 +40,9 @@ func shellStartError(executable: String, directory: String) -> String? {
     }
     return nil
 }
+
+/// Whether a shell exit is a start failure (error screen, Return retries) rather than a shell exit.
+/// Within the start window: a failed exit or a signal, or any exit on the last tab, which would otherwise respawn in a loop.
+func isStartFailure(exitCode: Int32?, withinStartWindow: Bool, isLastTab: Bool) -> Bool {
+    withinStartWindow && (exitCode != 0 || isLastTab)
+}

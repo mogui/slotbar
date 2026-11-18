@@ -94,7 +94,7 @@ Slotbar has a built-in **Terminal**: a native terminal view living in the Panel 
 **Terminal controller**
 - Owned by the AppDelegate, created when the Terminal is turned on, destroyed when it is turned off. Never unloaded by the Slot lifecycle rules or memory pressure.
 - Spawns each tab's shell as a login shell (argv[0] prefixed with `-`) from `shellPath` or `$SHELL`, in `startDirectory` or home, with the app environment plus `TERM=xterm-256color`, and `LANG=en_US.UTF-8` when the app environment has no `LANG`. Settings changes affect only tabs spawned afterwards.
-- A shell that fails to start leaves the tab showing the error and "Press Return to try again"; Return respawns with the current settings.
+- A shell that fails to start leaves the tab showing the error and "Press Return to try again"; Return respawns with the current settings. A shell that exits within 2 s of its spawn failed to start when its exit code is not 0, it was killed by a signal, or it ran in the last tab; any other exit is a shell exit.
 - Turning the Terminal off or quitting with any busy tab asks for one confirmation listing the busy tabs' titles; on confirm, all shells are terminated.
 
 **Panel, Rail and show/hide**

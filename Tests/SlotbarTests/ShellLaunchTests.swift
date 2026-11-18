@@ -81,3 +81,23 @@ import Testing
             == "Starting directory /bin/zsh does not exist")
     }
 }
+
+@Suite struct StartFailureTests {
+    @Test func cleanExitSoonAfterSpawnOnANonLastTabIsAShellExit() {
+        #expect(!isStartFailure(exitCode: 0, withinStartWindow: true, isLastTab: false))
+    }
+
+    @Test func cleanExitSoonAfterSpawnOnTheLastTabIsAStartFailure() {
+        #expect(isStartFailure(exitCode: 0, withinStartWindow: true, isLastTab: true))
+    }
+
+    @Test(arguments: [Int32(1), 127, nil])
+    func failedExitSoonAfterSpawnIsAStartFailure(code: Int32?) {
+        #expect(isStartFailure(exitCode: code, withinStartWindow: true, isLastTab: false))
+    }
+
+    @Test(arguments: [Int32(0), 1, nil])
+    func anyExitAfterTheWindowIsAShellExit(code: Int32?) {
+        #expect(!isStartFailure(exitCode: code, withinStartWindow: false, isLastTab: true))
+    }
+}

@@ -26,7 +26,7 @@ struct TerminalSettingsView: View {
             .id(cancelledTurnOffs)
             Group {
                 LabeledContent("Terminal hotkey") {
-                    KeyboardShortcuts.Recorder(for: .toggleTerminal)
+                    HotkeyRecorder(name: .toggleTerminal, other: .togglePanel, otherLabel: "Panel hotkey")
                 }
                 Picker("Theme", selection: Binding(
                     get: { store.settings.terminal.theme },
@@ -81,6 +81,29 @@ private extension TerminalSettings.Theme {
         case .solarizedDark: "Solarized Dark"
         case .dracula: "Dracula"
         case .nord: "Nord"
+        }
+    }
+}
+
+/// A hotkey recorder that refuses the other hotkey's shortcut: KeyboardShortcuts registers by shortcut, so a shared
+/// combination fires both, and disabling one (Terminal off) unregisters the other.
+struct HotkeyRecorder: View {
+    let name: KeyboardShortcuts.Name
+    let other: KeyboardShortcuts.Name
+    let otherLabel: String
+    @State private var clashed = false
+
+    var body: some View {
+        VStack(alignment: .trailing) {
+            KeyboardShortcuts.Recorder(for: name) { shortcut in
+                clashed = shortcut != nil && shortcut == KeyboardShortcuts.getShortcut(for: other)
+                if clashed { KeyboardShortcuts.setShortcut(nil, for: name) }
+            }
+            if clashed {
+                Label("Already used by the \(otherLabel)", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                    .font(.callout)
+            }
         }
     }
 }

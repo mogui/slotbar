@@ -16,7 +16,7 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
     private var settingsFontSize: Double
     /// The live font size shared by all tabs; never saved.
     private var fontSize: Double
-    /// A shell that exits sooner than this after its spawn failed to start; later exits are normal shell exits.
+    /// An exit sooner than this after the spawn may be a start failure (`isStartFailure`); later exits are shell exits.
     private static let startFailureWindow: TimeInterval = 2
     /// Hosts the active tab's view; the Panel shows this.
     let view = NSView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
@@ -265,10 +265,12 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
         showStartFailure("Cannot start shell: \(error)", in: tab)
     }
 
-    /// An exit soon after the spawn is a start failure (the tab stays, showing the error); later it is a shell exit.
+    /// A start failure leaves the tab showing the error; a shell exit goes to the session model.
     func processTerminated(source: TerminalView, exitCode: Int32?) {
         guard let tab = source as? ShellTerminalView, let id = tabId(tab) else { return }
-        if Date().timeIntervalSince(tab.spawnedAt) < Self.startFailureWindow {
+        if isStartFailure(exitCode: exitCode,
+                          withinStartWindow: Date().timeIntervalSince(tab.spawnedAt) < Self.startFailureWindow,
+                          isLastTab: session.tabs.count == 1) {
             showStartFailure(exitCode.map { "Shell \(tab.spawnedShell) exited with code \($0) at start" }
                 ?? "Shell \(tab.spawnedShell) was killed by a signal at start", in: tab)
             return

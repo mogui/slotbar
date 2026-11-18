@@ -296,7 +296,7 @@ Sources: [Terminal spec](terminal-spec.md)
   - Close on the last tab replaces it with a fresh tab and hides the Panel. Shell exit (`exit`, `Ctrl+D`) closes its tab; on the last tab it is replaced with a fresh tab and the Panel stays.
   - A bell on a tab that is not visible (another tab active, or the Terminal not shown) sets its flag; the flag clears when the tab becomes visible. The bell raises no macOS notification and no status bar badge.
 - Tab bar: shown only with two or more tabs. Each tab shows the title the shell sets; click selects, a close button appears on hover, a double-click on the empty part of the bar opens a new tab, a bell dot marks flagged tabs.
-- Shell: a login shell (argv[0] prefixed with `-`) from `shellPath` or `$SHELL`, in `startDirectory` or home, with the app environment plus `TERM=xterm-256color`, and `LANG=en_US.UTF-8` when the app environment has no `LANG`. Settings changes apply only to tabs spawned afterwards. A shell that fails to start leaves the tab showing the error and "Press Return to try again"; Return respawns with the current settings.
+- Shell: a login shell (argv[0] prefixed with `-`) from `shellPath` or `$SHELL`, in `startDirectory` or home, with the app environment plus `TERM=xterm-256color`, and `LANG=en_US.UTF-8` when the app environment has no `LANG`. Settings changes apply only to tabs spawned afterwards. A shell that fails to start leaves the tab showing the error and "Press Return to try again"; Return respawns with the current settings. A shell that exits within 2 s of its spawn failed to start when its exit code is not 0, it was killed by a signal, or it ran in the last tab; any other exit is a shell exit.
 - Turning the Terminal off or quitting with any busy tab asks for one confirmation listing the busy tabs' titles; on confirm, all shells are terminated. With every tab idle at the prompt, both happen without confirmation.
 - Appearance: SF Mono at the configured size, blinking block cursor, 10,000 lines of scrollback per tab. Themes are built-in palettes (16 ANSI colors, foreground, background, cursor, selection); `system` follows the effective light or dark appearance live. Rows and columns follow the Panel size, on every edge.
 - `Cmd`-click on a URL in the output opens it in the default browser through `NSWorkspace`, bypassing link routing (section 7).
@@ -507,7 +507,7 @@ Sources: [Settings data model and UI](https://github.com/mogui/slotbar/issues/10
 
 | Row | Behaviour |
 |---|---|
-| Global hotkey | `KeyboardShortcuts.Recorder` for `togglePanel`. Inline warning when registration failed. |
+| Global hotkey | `KeyboardShortcuts.Recorder` for `togglePanel`. Inline warning when registration failed. Recording the Terminal hotkey's shortcut clears it and shows "Already used by the Terminal hotkey" until the next change. |
 | Panel edge | Segmented control Left / Right / Top / Bottom, default Right. Applies at the next show and keeps the depth. |
 | Hide when Slotbar loses focus | Switch, on. |
 | Show in Dock | Switch, off, with the hint "Switch to Slotbar with Cmd-Tab". Section 4.6. |
@@ -532,7 +532,7 @@ Sources: [Settings data model and UI](https://github.com/mogui/slotbar/issues/10
 | Row | Behaviour |
 |---|---|
 | Enable Terminal | Switch, off. On creates the Terminal with one tab, adds the Rail icon and registers the Terminal hotkey. Off asks for confirmation when a tab is busy (section 4.8), then terminates all shells, removes the Rail icon and unregisters the hotkey. |
-| Terminal hotkey | `KeyboardShortcuts.Recorder` for `toggleTerminal`. |
+| Terminal hotkey | `KeyboardShortcuts.Recorder` for `toggleTerminal`. Recording the Panel hotkey's shortcut clears it and shows "Already used by the Panel hotkey" until the next change. |
 | Theme | Picker: Follow system, Solarized Light, Solarized Dark, Dracula, Nord. |
 | Font size | Stepper, 9-36, default 13. |
 | Shell | Text field for `shellPath`, written on Return or when the field loses focus; placeholder shows the current `$SHELL`; empty writes `null`. |

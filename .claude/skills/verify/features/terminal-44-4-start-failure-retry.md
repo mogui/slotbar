@@ -27,6 +27,6 @@ Preconditions: `V launch --terminal`, `V show`.
 ## Gotchas
 
 - Missing/non-executable/directory shell and missing directory are caught before spawning (`shellStartError`): no child process at all, text `Cannot start shell <path>: no such file` (or `is a directory`, `not executable`).
-- A shell that exits within 2 s of its spawn (any exit code) is a start failure: `Shell <path> exited with code N at start`. To test it, use an executable that exits at once, e.g. shell `/usr/bin/false`. A shell that exits after 2 s is a normal shell exit: its tab closes, and only the last tab respawns.
+- A shell that exits within 2 s of its spawn is a start failure when its code is not 0, it was killed by a signal, or it is the last tab (any code). A clean exit within 2 s on another tab (`Cmd+T`, then `exit`) closes that tab. Start-failure message: `Shell <path> exited with code N at start`. To test it, use an executable that exits at once, e.g. shell `/usr/bin/false`. A shell that exits after 2 s is a normal shell exit: its tab closes, and only the last tab respawns.
 - While failed, every key except Return is dropped by the tab; Panel shortcuts (Cmd+W, Cmd+1..9) still work.
 - Turning the Terminal off and on creates a new tab, which also re-checks the settings.
