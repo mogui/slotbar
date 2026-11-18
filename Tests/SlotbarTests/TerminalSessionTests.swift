@@ -180,3 +180,31 @@ extension TerminalSessionTests {
         #expect(session.tabs.count == 1 && session.tabs[0].id == session.activeTab)
     }
 }
+
+extension TerminalSessionTests {
+    @Test func turnedOffWithBusyTabsAsksOnceListingOnlyTheBusyTabsInOrder() {
+        var (session, ids) = threeTabs()
+        let effects = session.handle(.turnedOff(busy: [ids[2], ids[0]]))
+        #expect(effects == [.askTurnOffConfirmation([ids[0], ids[2]])])
+        #expect(session.tabs.map(\.id) == ids)
+    }
+
+    @Test func turnedOffWithEveryTabIdleTerminatesEveryShellInOrderWithoutAsking() {
+        var (session, ids) = threeTabs()
+        let effects = session.handle(.turnedOff(busy: []))
+        #expect(effects == [.terminateShell(ids[0]), .terminateShell(ids[1]), .terminateShell(ids[2])])
+    }
+
+    @Test func turnOffConfirmedTerminatesEveryShellInOrder() {
+        var (session, ids) = threeTabs()
+        _ = session.handle(.turnedOff(busy: [ids[1]]))
+        let effects = session.handle(.turnOffConfirmed)
+        #expect(effects == [.terminateShell(ids[0]), .terminateShell(ids[1]), .terminateShell(ids[2])])
+    }
+
+    @Test func turnedOffWithOnlyUnknownBusyIdsTreatsEveryTabAsIdle() {
+        var (session, ids) = threeTabs()
+        let effects = session.handle(.turnedOff(busy: [99]))
+        #expect(effects == [.terminateShell(ids[0]), .terminateShell(ids[1]), .terminateShell(ids[2])])
+    }
+}

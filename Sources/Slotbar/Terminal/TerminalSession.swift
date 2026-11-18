@@ -18,6 +18,9 @@ struct TerminalSession: Sendable {
         case titleChanged(Int, String)
         /// The Terminal became visible (Panel shown on it) or stopped being visible.
         case shown(Bool)
+        /// The Terminal is being turned off or Slotbar quits; `busy`: the tabs running a foreground process.
+        case turnedOff(busy: Set<Int>)
+        case turnOffConfirmed
     }
 
     enum Effect: Equatable, Sendable {
@@ -25,6 +28,8 @@ struct TerminalSession: Sendable {
         case terminateShell(Int)
         case askConfirmation(Int)
         case hidePanel
+        /// One confirmation listing these busy tabs, in tab order.
+        case askTurnOffConfirmation([Int])
     }
 
     private(set) var tabs = [Tab(id: 0)]
@@ -55,6 +60,11 @@ struct TerminalSession: Sendable {
         case .shown(let shown):
             isShown = shown
             return []
+        case .turnedOff(let busy):
+            let busyTabs = tabs.map(\.id).filter(busy.contains)
+            return busyTabs.isEmpty ? tabs.map { .terminateShell($0.id) } : [.askTurnOffConfirmation(busyTabs)]
+        case .turnOffConfirmed:
+            return tabs.map { .terminateShell($0.id) }
         }
     }
 

@@ -38,7 +38,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let openAtLogin = OpenAtLogin(service: MainAppLoginItem(), store: store)
         openAtLogin.healAtLaunch()
         panel.settingsPane = SettingsPane(store: store, hotkey: hotkey, openAtLogin: openAtLogin,
-                                          favicons: favicons, deleteProfile: { [weak self] id in self?.deleteProfile(id) })
+                                          favicons: favicons, deleteProfile: { [weak self] id in self?.deleteProfile(id) },
+                                          confirmTerminalOff: { [weak self] in self?.terminal?.confirmTurnOff() ?? true })
         notificationBridge.slotForWebView = { [weak self] webView in
             self?.slotRegistry.controller(owning: webView)?.slot
         }
@@ -193,6 +194,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidBecomeActive(_ notification: Notification) {
         guard settingsStore?.settings.general.showInDock == true else { return }
         panelController?.show()
+    }
+
+    /// Quit with a busy Terminal tab asks the turn-off confirmation; Cancel keeps Slotbar running.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        terminal?.confirmTurnOff() == false ? .terminateCancel : .terminateNow
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

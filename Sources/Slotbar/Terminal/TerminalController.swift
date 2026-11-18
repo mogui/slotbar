@@ -37,6 +37,13 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
         tabViews = [:]
     }
 
+    /// Turning off or quitting: asks once when any tab is busy, then terminates every shell.
+    /// False when the user cancels; the shells keep running.
+    func confirmTurnOff() -> Bool {
+        handle(.turnedOff(busy: Set(tabViews.filter { $0.value.isBusy }.keys)))
+        return tabViews.isEmpty
+    }
+
     func openTab() { handle(.openTab) }
     func selectNextTab() { handle(.selectNext) }
     func selectPreviousTab() { handle(.selectPrevious) }
@@ -65,6 +72,8 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
                 tab.removeFromSuperview()
             case .askConfirmation(let id): askToClose(id)
             case .hidePanel: onHidePanel?()
+            case .askTurnOffConfirmation(let ids):
+                if askToTurnOff(ids) { perform(session.handle(.turnOffConfirmed)) }
             }
         }
         showActiveTab()
@@ -130,6 +139,22 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
                 if response == .alertFirstButtonReturn { self?.handle(.closeConfirmed(id)) }
             }
         }
+    }
+
+    /// One app-modal alert for turn-off and Quit; Quit can come from the status menu with the Panel hidden.
+    private func askToTurnOff(_ ids: [Int]) -> Bool {
+        let titles = ids.map { id in
+            let title = session.tabs.first { $0.id == id }?.title ?? ""
+            // Display title rule (#41): the shell-set title, else the tab's shell name.
+            return title.isEmpty ? URL(fileURLWithPath: tabViews[id]?.spawnedShell ?? "").lastPathComponent : title
+        }
+        let alert = NSAlert()
+        alert.messageText = "Terminate running processes?"
+        alert.informativeText = "A process is running in these tabs:\n\(titles.joined(separator: "\n"))\nThey will be terminated."
+        alert.addButton(withTitle: "Terminate")
+        alert.addButton(withTitle: "Cancel")
+        NSApp.activate()
+        return alert.runModal() == .alertFirstButtonReturn
     }
 
     private func tabId(_ source: AnyObject) -> Int? {

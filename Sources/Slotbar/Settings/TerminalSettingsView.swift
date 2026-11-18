@@ -2,15 +2,19 @@ import KeyboardShortcuts
 import SwiftUI
 
 /// Settings, Terminal section (Terminal spec, Settings UI). Every edit writes immediately; turning it off
-/// terminates the shells. Shell and directory apply to shells spawned afterwards.
+/// terminates the shells, after one confirmation when any tab is busy. Shell and directory apply to shells spawned afterwards.
 struct TerminalSettingsView: View {
     let store: SettingsStore
+    /// False when the user cancels the busy-tab confirmation: the Terminal stays on.
+    let confirmTurnOff: () -> Bool
 
     var body: some View {
         Section("Terminal") {
             Toggle("Enable Terminal", isOn: Binding(
                 get: { store.settings.terminal.enabled },
-                set: { value in store.update { $0.terminal.enabled = value } }
+                set: { value in
+                    if value || confirmTurnOff() { store.update { $0.terminal.enabled = value } }
+                }
             ))
             Group {
                 LabeledContent("Terminal hotkey") {

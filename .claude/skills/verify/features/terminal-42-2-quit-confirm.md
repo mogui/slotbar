@@ -18,11 +18,12 @@ Status: pending
 
 Preconditions: `V launch --terminal`, `V show`, click `Terminal`, type `sleep 604` + Return.
 
-- **Quit.** `oc hotkey --key CmdOrCtrl+Q --allow-system-shortcut` (only with the user's approval: orca blocks Cmd+Q by default). Dialog appears; `V shot 42-2-ask`.
-- **Cancel.** Click cancel: `V doctor` process alive; `pgrep -f "sleep 604"` found.
-- **Confirm.** Quit again, confirm: process gone, `sleep 604` gone. `V stop` to clean up.
+- **Quit.** `oc hotkey --key CmdOrCtrl+Q --allow-system-shortcut` (only with the user's approval: orca blocks Cmd+Q by default). The same alert as 42-1 ("Terminate running processes?", `Terminate` / `Cancel`) appears; `V shot 42-2-ask`.
+- **Cancel.** Click `Cancel`: `V doctor` process alive; `pgrep -f "sleep 604"` found.
+- **Confirm.** Quit again, click `Terminate`: process gone, `sleep 604` gone. `V stop` to clean up.
 
 ## Gotchas
 
 - `V stop` and `V relaunch` use SIGTERM, which bypasses `applicationShouldTerminate`: they never prove this criterion.
+- The hook is `applicationShouldTerminate`, so Cmd+Q, the app menu and the status menu "Quit Slotbar" all ask.
 - The status menu is in the system menu bar, out of reach of `orca computer`.

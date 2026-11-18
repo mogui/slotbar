@@ -17,7 +17,7 @@ Status: pending
 
 Preconditions: worktree at the ticket's commit.
 
-- **Run.** `swift test --filter <SessionModel suite>`; test names include the turned-off cases. Exit 0.
+- **Run.** `swift test --filter TerminalSessionTests`; test names include `turnedOff...` and `turnOffConfirmed...` (4 cases). The effect carries busy tab ids (`askTurnOffConfirmation([Int])`); the controller maps them to titles. Exit 0.
 
 ## Gotchas
 
