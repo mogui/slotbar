@@ -16,6 +16,20 @@ struct TerminalSettingsView: View {
                 LabeledContent("Terminal hotkey") {
                     KeyboardShortcuts.Recorder(for: .toggleTerminal)
                 }
+                Picker("Theme", selection: Binding(
+                    get: { store.settings.terminal.theme },
+                    set: { value in store.update { $0.terminal.theme = value } }
+                )) {
+                    Text("Follow system").tag(TerminalSettings.Theme.system)
+                    Text("Solarized Light").tag(TerminalSettings.Theme.solarizedLight)
+                    Text("Solarized Dark").tag(TerminalSettings.Theme.solarizedDark)
+                    Text("Dracula").tag(TerminalSettings.Theme.dracula)
+                    Text("Nord").tag(TerminalSettings.Theme.nord)
+                }
+                Stepper("Font size: \(Int(store.settings.terminal.fontSize)) pt", value: Binding(
+                    get: { store.settings.terminal.fontSize },
+                    set: { value in store.update { $0.terminal.fontSize = value } }
+                ), in: TerminalSettings.fontSizeRange, step: 1)
                 TextField("Shell", text: binding(\.shellPath),
                           prompt: Text(ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"))
                 TextField("Starting directory", text: binding(\.startDirectory), prompt: Text("~"))

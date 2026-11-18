@@ -26,4 +26,7 @@ Preconditions: `V launch`, `V show`, click `Settings`.
 
 ## Gotchas
 
+- Stepper label reads `Font size: N pt`; it sits after the Theme picker, before Shell.
+- A Settings size change also resets any live `Cmd+=`/`Cmd+-` size.
+
 - The stepper may be one element with increment/decrement actions; use `oc perform-secondary-action` with the listed action names.
