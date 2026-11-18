@@ -13,6 +13,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var favicons: FaviconCache?
     private let slotRegistry = SlotRegistry()
     private var memoryPressure: DispatchSourceMemoryPressure?
+    /// The Terminal while it is on; separate from the Slots, so Slot lifecycle and memory pressure never unload it.
+    private var terminal: TerminalController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Failed store removals are retried before any webview exists (SPEC 3.4).
@@ -90,8 +92,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let policy: NSApplication.ActivationPolicy = settings.general.showInDock ? .regular : .accessory
         if NSApp.activationPolicy() != policy { NSApp.setActivationPolicy(policy) }
         slotRegistry.apply(settings) { makeSlotController($0, favicons: favicons, panel: panelController) }
-        panelController.update(settings: settings, controllers: slotRegistry.controllers)
+        applyTerminal(settings.terminal.enabled)
+        panelController.update(settings: settings, controllers: slotRegistry.controllers, terminal: terminal)
         refreshBadges()
+    }
+
+    /// Creates the Terminal (one fresh tab) when turned on; terminates its shell and drops it when turned off.
+    private func applyTerminal(_ enabled: Bool) {
+        guard let settingsStore, enabled != (terminal != nil) else { return }
+        if enabled {
+            terminal = TerminalController(settingsStore: settingsStore)
+        } else {
+            terminal?.terminate()
+            terminal = nil
+        }
     }
 
     private func makeSlotController(_ slot: Slot, favicons: FaviconCache, panel: PanelController) -> SlotController {

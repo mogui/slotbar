@@ -19,19 +19,19 @@ import Testing
 
     @Test func tooltipShowsLabelAndCommandShortcut() {
         let mail = Self.slot("https://mail.google.com/", Self.work, label: "Gmail - Work")
-        let items = railItems(settings: Self.settings([mail]), activeSlot: nil)
+        let items = railItems(settings: Self.settings([mail]), activeView: nil)
         #expect(items.map(\.tooltip) == ["Gmail - Work  ⌘1"])
     }
 
     @Test func tooltipShowsHomeHostWhileLabelIsNull() {
         let mail = Self.slot("https://mail.google.com/", Self.work)
-        let items = railItems(settings: Self.settings([mail]), activeSlot: nil)
+        let items = railItems(settings: Self.settings([mail]), activeView: nil)
         #expect(items.map(\.tooltip) == ["mail.google.com  ⌘1"])
     }
 
     @Test func slotsAfterTheNinthShowLabelOnly() {
         let slots = (1...10).map { Self.slot("https://example.com/", Self.work, label: "S\($0)") }
-        let items = railItems(settings: Self.settings(slots), activeSlot: nil)
+        let items = railItems(settings: Self.settings(slots), activeView: nil)
         #expect(items[8].tooltip == "S9  ⌘9")
         #expect(items[9].tooltip == "S10")
     }
@@ -39,8 +39,8 @@ import Testing
     @Test func itemsFollowListOrderWithTheirProfileColor() {
         let a = Self.slot("https://mail.google.com/", Self.home)
         let b = Self.slot("https://chat.google.com/", Self.work)
-        let items = railItems(settings: Self.settings([a, b]), activeSlot: nil)
-        #expect(items.map(\.slotId) == [a.id, b.id])
+        let items = railItems(settings: Self.settings([a, b]), activeView: nil)
+        #expect(items.map(\.view) == [.slot(a.id), .slot(b.id)])
         #expect(items.map(\.color) == [ProfileColor(red: 0x34, green: 0xC7, blue: 0x59),
                                        ProfileColor(red: 0xAF, green: 0x52, blue: 0xDE)])
     }
@@ -48,7 +48,7 @@ import Testing
     @Test func onlyTheActiveSlotIsHighlighted() {
         let a = Self.slot("https://mail.google.com/", Self.work)
         let b = Self.slot("https://chat.google.com/", Self.work)
-        let items = railItems(settings: Self.settings([a, b]), activeSlot: b.id)
+        let items = railItems(settings: Self.settings([a, b]), activeView: .slot(b.id))
         #expect(items.map(\.isActive) == [false, true])
     }
 
@@ -57,8 +57,46 @@ import Testing
         let b = Self.slot("https://mail.google.com/", Self.work)
         let c = Self.slot("https://chat.google.com/", Self.work)
         let d = Self.slot("https://calendar.google.com/", Self.work)
-        let items = railItems(settings: Self.settings([a, b, c, d]), activeSlot: nil,
+        let items = railItems(settings: Self.settings([a, b, c, d]), activeView: nil,
                               unread: [a.id: .count(3), b.id: .count(120), c.id: .unknown])
         #expect(items.map(\.badge) == ["3", "99+", "\u{25CF}", nil])
+    }
+
+    static func withTerminal(_ slots: [Slot]) -> Settings {
+        var s = settings(slots)
+        s.terminal.enabled = true
+        return s
+    }
+
+    @Test func terminalItemIsAbsentWhileTheTerminalIsOff() {
+        let a = Self.slot("https://mail.google.com/", Self.work)
+        let items = railItems(settings: Self.settings([a]), activeView: nil)
+        #expect(items.map(\.view) == [.slot(a.id)])
+    }
+
+    @Test func terminalItemComesAfterEverySlotWhileEnabled() {
+        let a = Self.slot("https://mail.google.com/", Self.work)
+        let b = Self.slot("https://chat.google.com/", Self.home)
+        let items = railItems(settings: Self.withTerminal([a, b]), activeView: nil)
+        #expect(items.map(\.view) == [.slot(a.id), .slot(b.id), .terminal])
+    }
+
+    @Test func terminalItemHasNoProfileColorNoBadgeAndATerminalTooltip() {
+        let items = railItems(settings: Self.withTerminal([]), activeView: nil)
+        #expect(items == [RailItem(view: .terminal, tooltip: "Terminal", color: nil,
+                                   isActive: false, notifications: false, badge: nil)])
+    }
+
+    @Test func terminalItemIsHighlightedWhenTheTerminalIsTheActiveView() {
+        let a = Self.slot("https://mail.google.com/", Self.work)
+        let items = railItems(settings: Self.withTerminal([a]), activeView: .terminal)
+        #expect(items.map(\.isActive) == [false, true])
+    }
+
+    @Test func terminalDoesNotTakeACommandNumber() {
+        let slots = (1...9).map { Self.slot("https://example.com/", Self.work, label: "S\($0)") }
+        let items = railItems(settings: Self.withTerminal(slots), activeView: nil)
+        #expect(items[8].tooltip == "S9  ⌘9")
+        #expect(items[9].tooltip == "Terminal")
     }
 }

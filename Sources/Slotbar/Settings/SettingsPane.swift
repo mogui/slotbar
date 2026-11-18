@@ -16,7 +16,7 @@ final class SettingsPane {
     var view: NSView { hosting.view }
 }
 
-/// General, Profiles and Slots in a centered column of at most 640 pt.
+/// General, Profiles, Slots and Terminal in a centered column of at most 640 pt.
 struct SettingsView: View {
     let store: SettingsStore
     let hotkey: Hotkey?
@@ -29,6 +29,7 @@ struct SettingsView: View {
             GeneralView(store: store, hotkey: hotkey, openAtLogin: openAtLogin)
             ProfilesView(store: store, deleteProfile: deleteProfile)
             SlotsView(store: store, favicons: favicons)
+            TerminalSettingsView(store: store)
         }
         .formStyle(.grouped)
         .frame(maxWidth: 640)

@@ -104,6 +104,63 @@ import Testing
         #expect(try String(contentsOf: settingsFile, encoding: .utf8) == Self.validJSON)
     }
 
+    @Test func fileWithoutTerminalReadsAsOffWithDefaults() throws {
+        try writeFile(Self.validJSON)
+
+        let store = SettingsStore(directory: directory)
+
+        #expect(store.settings.schemaVersion == 1)
+        #expect(store.settings.terminal == TerminalSettings(
+            enabled: false, theme: .system, fontSize: 13, shellPath: nil, startDirectory: nil))
+    }
+
+    func loadTerminal(_ terminal: String) throws -> TerminalSettings {
+        let json = Self.validJSON.replacingOccurrences(of: "\"extra\": \"ignored\",", with: "\"terminal\": \(terminal),")
+        try writeFile(json)
+        return SettingsStore(directory: directory).settings.terminal
+    }
+
+    @Test func terminalFieldsMissingFromTheObjectReadAsDefaults() throws {
+        let terminal = try loadTerminal(#"{ "enabled": true, "shellPath": "/opt/homebrew/bin/fish" }"#)
+        #expect(terminal == TerminalSettings(
+            enabled: true, theme: .system, fontSize: 13, shellPath: "/opt/homebrew/bin/fish", startDirectory: nil))
+    }
+
+    @Test(arguments: [(4.0, 9.0), (50, 36), (14, 14)])
+    func outOfRangeFontSizeIsClamped(stored: Double, expected: Double) throws {
+        #expect(try loadTerminal(#"{ "fontSize": \#(stored) }"#).fontSize == expected)
+    }
+
+    @Test func unknownThemeReadsAsSystemAndKeepsTheRestOfTheFile() throws {
+        let terminal = try loadTerminal(#"{ "enabled": true, "theme": "monokai" }"#)
+        #expect(terminal.theme == .system)
+        #expect(terminal.enabled)
+        #expect(!FileManager.default.fileExists(
+            atPath: directory.appendingPathComponent("settings.corrupt-20260304-050607.json").path))
+    }
+
+    @Test func terminalRoundTripsThroughTheFile() throws {
+        let store = SettingsStore(directory: directory)
+        let terminal = TerminalSettings(enabled: true, theme: .dracula, fontSize: 18,
+                                        shellPath: "/bin/bash", startDirectory: "~/src")
+
+        store.update { $0.terminal = terminal }
+
+        let written = try fileJSON()["terminal"] as? [String: Any]
+        #expect(written?["theme"] as? String == "dracula")
+        #expect(written?.keys.contains("startDirectory") == true)
+        #expect(SettingsStore(directory: directory).settings.terminal == terminal)
+        #expect(try fileJSON()["schemaVersion"] as? Int == 1)
+    }
+
+    @Test func nullShellAndDirectoryAreWrittenAsNull() throws {
+        _ = SettingsStore(directory: directory)
+        let written = try #require(try fileJSON()["terminal"] as? [String: Any])
+        #expect(written["shellPath"] is NSNull)
+        #expect(written["startDirectory"] is NSNull)
+        #expect(written["enabled"] as? Bool == false)
+    }
+
     nonisolated static let corruptTime: Date = {
         var c = DateComponents()
         (c.year, c.month, c.day, c.hour, c.minute, c.second) = (2026, 3, 4, 5, 6, 7)

@@ -1,9 +1,13 @@
 import Foundation
 
-/// Slot made visible on show: the last active one if it still exists, else Slot 1 (SPEC 4.5).
-func slotToShow(slots: [Slot], lastActive: UUID?) -> UUID? {
-    if let lastActive, slots.contains(where: { $0.id == lastActive }) { return lastActive }
-    return slots.first?.id
+/// View made visible on show: the last active one if it still exists (a Slot in the list, or the Terminal
+/// while enabled), else Slot 1 (SPEC 4.5).
+func viewToShow(slots: [Slot], lastActive: PanelView?, terminalEnabled: Bool) -> PanelView? {
+    switch lastActive {
+    case .terminal where terminalEnabled: return .terminal
+    case .slot(let id) where slots.contains(where: { $0.id == id }): return lastActive
+    default: return slots.first.map { .slot($0.id) }
+    }
 }
 
 /// Kept-alive Slots load in the background at launch, in list order (SPEC 6.2).

@@ -16,8 +16,10 @@ final class PanelController: NSObject {
     private let emptyState = PanelController.makeEmptyState()
     private var settings: Settings?
     private var controllers: [SlotController] = []
-    /// Last active Slot, in memory only (SPEC 4.5).
-    private var activeSlot: UUID?
+    /// The Terminal while it is on (owned by the AppDelegate).
+    private var terminal: TerminalController?
+    /// Last active view, in memory only (SPEC 4.5).
+    private var activeView: PanelView?
     /// Per-Slot actions from the Rail menu and the Panel shortcuts.
     var onSlotAction: ((UUID, SlotAction) -> Void)?
     private var policy = PanelToggle()
@@ -44,7 +46,7 @@ final class PanelController: NSObject {
         content.addSubview(rail)
         content.addSubview(resizeHandle)
         window.contentView = content
-        rail.onSelect = { [weak self] id in self?.activate(id) }
+        rail.onSelect = { [weak self] view in self?.activate(view) }
         rail.onAction = { [weak self] id, action in self?.onSlotAction?(id, action) }
         rail.onToggleNotifications = { [weak self] id in self?.settingsStore.update { $0.toggleNotifications(slot: id) } }
         window.onShortcut = { [weak self] shortcut in self?.handle(shortcut) }
@@ -57,12 +59,14 @@ final class PanelController: NSObject {
             name: NSApplication.didChangeScreenParametersNotification, object: nil)
     }
 
-    /// Replaces the Slot list shown in the Rail; keeps the active Slot when it still exists.
-    func update(settings: Settings, controllers: [SlotController]) {
+    /// Replaces the Slot list and the Terminal shown in the Rail; keeps the active view when it still exists,
+    /// else falls back to Slot 1.
+    func update(settings: Settings, controllers: [SlotController], terminal: TerminalController?) {
         self.settings = settings
         self.controllers = controllers
+        self.terminal = terminal
         if isShowing && !showsSettings {
-            activate(slotToShow(slots: settings.slots, lastActive: activeSlot))
+            activate(viewToShow(slots: settings.slots, lastActive: activeView, terminalEnabled: terminal != nil))
         } else {
             refreshRail()
         }
@@ -76,7 +80,7 @@ final class PanelController: NSObject {
 
     /// A Slot entered or left the crash placeholder: swap its view if it is on screen.
     func slotContentChanged(_ id: UUID) {
-        if visibleSlot == id { activate(id) }
+        if visibleSlot == id { activate(.slot(id)) }
     }
 
     /// True when the Panel or one of its Child windows is key.
@@ -127,7 +131,8 @@ final class PanelController: NSObject {
 
     /// The Slot the Panel shows while on screen, else nil.
     var visibleSlot: UUID? {
-        isShowing && !showsSettings ? activeSlot : nil
+        guard isShowing, !showsSettings, case .slot(let id) = activeView else { return nil }
+        return id
     }
 
     /// Shows the Panel with Settings in the Slot area.
@@ -146,10 +151,10 @@ final class PanelController: NSObject {
 
     /// Makes the Slot active (loading it if Unloaded), showing the Panel if it is hidden.
     func show(slot id: UUID) {
-        activeSlot = id
+        activeView = .slot(id)
         show()
         // Also when `show()` found the window still visible (a hide sliding out) and activated nothing.
-        activate(id)
+        activate(.slot(id))
     }
 
     func show() {
@@ -182,7 +187,9 @@ final class PanelController: NSObject {
         }
         resizeHandle.place(on: edge, in: shown.size)
         layoutContent(size: shown.size)
-        if !wasShowing { activate(slotToShow(slots: settings?.slots ?? [], lastActive: activeSlot)) }
+        if !wasShowing {
+            activate(viewToShow(slots: settings?.slots ?? [], lastActive: activeView, terminalEnabled: terminal != nil))
+        }
 
         animationID += 1
         let id = animationID
@@ -268,7 +275,7 @@ final class PanelController: NSObject {
     private func handle(_ shortcut: PanelShortcut) {
         switch shortcut {
         case .activateSlot(let number):
-            if let id = slotId(number: number, in: settings?.slots ?? []) { activate(id) }
+            if let id = slotId(number: number, in: settings?.slots ?? []) { activate(.slot(id)) }
         case .hidePanel:
             hide()
         case .goHome: performOnActive(.goHome)
@@ -278,19 +285,23 @@ final class PanelController: NSObject {
     }
 
     private func performOnActive(_ action: SlotAction) {
-        guard let activeSlot else { return }
-        onSlotAction?(activeSlot, action)
+        guard case .slot(let id) = activeView else { return }
+        onSlotAction?(id, action)
     }
 
-    /// Makes a Slot active, loading it if needed; `nil` shows the empty state.
-    private func activate(_ id: UUID?) {
-        activeSlot = id
+    /// Makes a Slot (loading it if needed) or the Terminal active; `nil` shows the empty state.
+    /// The shown view becomes first responder, so the Terminal's active tab takes the keyboard.
+    private func activate(_ target: PanelView?) {
+        activeView = target
         showsSettings = false
         slotArea.subviews.forEach { $0.removeFromSuperview() }
         let view: NSView
-        if let id, let controller = controllers.controller(for: id) {
-            view = controller.contentView()
-        } else {
+        switch target {
+        case .slot(let id):
+            view = controllers.controller(for: id)?.contentView() ?? emptyState
+        case .terminal:
+            view = terminal?.view ?? emptyState
+        case nil:
             view = emptyState
         }
         view.frame = slotArea.bounds
@@ -308,7 +319,7 @@ final class PanelController: NSObject {
         for controller in controllers {
             if let state = controller.unread { unread[controller.slot.id] = state }
         }
-        rail.update(items: railItems(settings: settings, activeSlot: showsSettings ? nil : activeSlot, unread: unread),
+        rail.update(items: railItems(settings: settings, activeView: showsSettings ? nil : activeView, unread: unread),
                     settingsActive: showsSettings) { [favicons] in favicons.image(for: $0) }
     }
 
