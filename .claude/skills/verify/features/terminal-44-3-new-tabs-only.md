@@ -24,3 +24,4 @@ Preconditions: `V launch --terminal`, `V show`, click `Terminal`, `V shells` sav
 ## Gotchas
 
 - `/bin/bash` prints the "default interactive shell is now zsh" banner; harmless.
+- `Cmd+T` exists only once #40 (tabs) is merged. Before that, spawn a new shell by typing `exit` in the tab after 2 s (respawns with the current settings) or by turning the Terminal off and on.

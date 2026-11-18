@@ -25,3 +25,4 @@ Preconditions: `V launch --terminal`, `mkdir -p <run>/home/work`, `V show`, clic
 ## Gotchas
 
 - Home is the isolated `<run>/home` (CFFIXED_USER_HOME), so `~` expands there, not to the user's home.
+- `Cmd+T` exists only once #40 (tabs) is merged. Before that, spawn a new shell by typing `exit` in the tab after 2 s (respawns with the current settings) or by turning the Terminal off and on.

@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Slotbar
 
@@ -40,5 +41,38 @@ import Testing
         let launch = shellLaunch(shellPath: nil, startDirectory: nil,
                                  environment: ["PATH": "/usr/bin", "TERM": "dumb"], home: home)
         #expect(Set(launch.environment) == ["PATH=/usr/bin", "TERM=xterm-256color"])
+    }
+}
+
+@Suite struct ShellStartErrorTests {
+    let existingDirectory = NSTemporaryDirectory()
+
+    @Test func anExecutableShellInAnExistingDirectoryStarts() {
+        #expect(shellStartError(executable: "/bin/zsh", directory: existingDirectory) == nil)
+    }
+
+    @Test func aMissingShellIsAnError() {
+        #expect(shellStartError(executable: "/nonexistent/shell", directory: existingDirectory)
+            == "Cannot start shell /nonexistent/shell: no such file")
+    }
+
+    @Test func aShellPathThatIsADirectoryIsAnError() {
+        #expect(shellStartError(executable: "/bin", directory: existingDirectory)
+            == "Cannot start shell /bin: is a directory")
+    }
+
+    @Test func aNonExecutableShellIsAnError() throws {
+        let file = NSTemporaryDirectory() + "slotbar-shell-\(UUID().uuidString)"
+        try "echo".write(toFile: file, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(atPath: file) }
+        #expect(shellStartError(executable: file, directory: existingDirectory)
+            == "Cannot start shell \(file): not executable")
+    }
+
+    @Test func aMissingOrNonDirectoryStartingDirectoryIsAnError() {
+        #expect(shellStartError(executable: "/bin/zsh", directory: "/nonexistent/dir")
+            == "Starting directory /nonexistent/dir does not exist")
+        #expect(shellStartError(executable: "/bin/zsh", directory: "/bin/zsh")
+            == "Starting directory /bin/zsh does not exist")
     }
 }
