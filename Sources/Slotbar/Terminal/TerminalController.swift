@@ -96,9 +96,7 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
     /// Puts the tab bar (two or more tabs) and the active tab's view in the container and gives the tab
     /// the keyboard if the Terminal is on screen.
     private func showActiveTab() {
-        let items = terminalTabBar(tabs: session.tabs, activeTab: session.activeTab) { [tabViews] id in
-            URL(fileURLWithPath: tabViews[id]?.spawnedShell ?? "").lastPathComponent
-        }
+        let items = terminalTabBar(tabs: session.tabs, activeTab: session.activeTab, fallbackTitle: shellName)
         tabBar.update(items: items)
         let barHeight = items.isEmpty ? 0 : TerminalTabBarView.height
         if items.isEmpty {
@@ -170,10 +168,10 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
 
     /// One app-modal alert for turn-off and Quit; Quit can come from the status menu with the Panel hidden.
     private func askToTurnOff(_ ids: [Int]) -> Bool {
+        // Same names as the tab bar: the shell-set title, else the tab's shell name.
         let titles = ids.map { id in
             let title = session.tabs.first { $0.id == id }?.title ?? ""
-            // Display title rule (#41): the shell-set title, else the tab's shell name.
-            return title.isEmpty ? URL(fileURLWithPath: tabViews[id]?.spawnedShell ?? "").lastPathComponent : title
+            return title.isEmpty ? shellName(id) : title
         }
         let alert = NSAlert()
         alert.messageText = "Terminate running processes?"
@@ -182,6 +180,11 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
         alert.addButton(withTitle: "Cancel")
         NSApp.activate()
         return alert.runModal() == .alertFirstButtonReturn
+    }
+
+    /// A tab's name when its shell set no title.
+    private func shellName(_ id: Int) -> String {
+        URL(fileURLWithPath: tabViews[id]?.spawnedShell ?? "").lastPathComponent
     }
 
     private func tabId(_ source: AnyObject) -> Int? {
