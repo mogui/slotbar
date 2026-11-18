@@ -10,15 +10,13 @@ permissions:
 
 jobs:
   release:
-    # arm64 host: the x86_64 slice runs SwiftTerm's build tool, compiled for x86_64, under Rosetta.
-    # An Intel host cannot run the arm64 one.
-    runs-on: macos-15
-    timeout-minutes: 30
+    # Intel: the arm64 runner queue times out.
+    runs-on: macos-26-intel
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - run: /usr/bin/pgrep -q oahd || sudo softwareupdate --install-rosetta --agree-to-license
       - run: scripts/release.sh "$GITHUB_REF_NAME"
         env:
           GH_TOKEN: ${{ github.token }}
-          # The image's default Xcode 16.4 (macOS 15.5 SDK) rejects the Swift 6 concurrency in the code.
-          DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+          # Xcode 26.3 fails the universal build of SwiftTerm's build-tool plugin; 26.6 builds it.
+          DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
