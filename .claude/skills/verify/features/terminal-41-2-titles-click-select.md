@@ -18,8 +18,10 @@ Status: pending
 Preconditions: `V launch --terminal`, `V show`, click `Terminal`, `Cmd+T` (two tabs).
 
 - **Titles.** In tab 2 type `printf '\e]0;TAB-TWO\a'` + Return; `Cmd+Shift+[`, type `printf '\e]0;TAB-ONE\a'` + Return. `oc get-app-state --query TAB-` finds both; `V shot 41-2-titles`.
-- **Click.** Click the `TAB-TWO` element. Type `tty > ~/clicked` + Return: its tty is tab 2's shell (`V shells`).
+- **Click.** Click the `TAB-TWO` element (AX button; AX press also selects). Type `tty > ~/clicked` + Return: its tty is tab 2's shell (`V shells`).
 
 ## Gotchas
 
+- An untitled tab shows the basename of its own shell (`zsh`), not the current Settings shell.
+- The active tab has AX selected = true and the control background; inactive titles are secondary-colored.
 - zsh themes may overwrite the title at every prompt; if the title flips back, run with `DISABLE_AUTO_TITLE=true` or `precmd_functions=()` first.
