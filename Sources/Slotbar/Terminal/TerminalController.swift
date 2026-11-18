@@ -11,6 +11,11 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
     private let settingsStore: SettingsStore
     private var session = TerminalSession()
     private var tabViews: [Int: ShellTerminalView] = [:]
+    private var theme: TerminalSettings.Theme
+    /// The Settings font size last applied; a change resets the live size.
+    private var settingsFontSize: Double
+    /// The live font size shared by all tabs; never saved.
+    private var fontSize: Double
     /// A shell that exits sooner than this after its spawn failed to start; later exits are normal shell exits.
     private static let startFailureWindow: TimeInterval = 2
     /// Hosts the active tab's view; the Panel shows this.
@@ -21,6 +26,10 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
 
     init(settingsStore: SettingsStore) {
         self.settingsStore = settingsStore
+        let terminal = settingsStore.settings.terminal
+        theme = terminal.theme
+        settingsFontSize = terminal.fontSize
+        fontSize = terminal.fontSize
         super.init()
         view.autoresizesSubviews = true
         tabBar.autoresizingMask = [.width, .minYMargin]
@@ -47,6 +56,41 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
     func confirmTurnOff() -> Bool {
         handle(.turnedOff(busy: Set(tabViews.filter { $0.value.isBusy }.keys)))
         return tabViews.isEmpty
+    }
+
+    /// Applies the Settings theme and font size to every tab; a new Settings size replaces the live size.
+    func apply(_ settings: TerminalSettings) {
+        theme = settings.theme
+        if settings.fontSize != settingsFontSize {
+            settingsFontSize = settings.fontSize
+            fontSize = settings.fontSize
+        }
+        tabViews.values.forEach(style)
+    }
+
+    func changeFontSize(_ change: FontSizeChange) {
+        fontSize = liveFontSize(fontSize, change, settingsSize: settingsFontSize)
+        tabViews.values.forEach(style)
+    }
+
+    /// Font, then the theme palette; `system` follows the tab's effective appearance.
+    private func style(_ tab: ShellTerminalView) {
+        if tab.font.pointSize != fontSize { tab.font = .monospacedSystemFont(ofSize: fontSize, weight: .regular) }
+        let dark = tab.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        let palette = terminalPalette(theme: theme, dark: dark)
+        tab.installColors(palette.ansi.map {
+            Color(red8: UInt16($0 >> 16 & 0xff), green8: UInt16($0 >> 8 & 0xff), blue8: UInt16($0 & 0xff))
+        })
+        tab.nativeForegroundColor = nsColor(palette.foreground)
+        tab.nativeBackgroundColor = nsColor(palette.background)
+        tab.caretColor = nsColor(palette.cursor)
+        tab.selectedTextBackgroundColor = nsColor(palette.selection)
+        tab.selectedTextForegroundColor = nsColor(palette.foreground)
+    }
+
+    private func nsColor(_ rgb: UInt32) -> NSColor {
+        NSColor(srgbRed: CGFloat(rgb >> 16 & 0xff) / 255, green: CGFloat(rgb >> 8 & 0xff) / 255,
+                blue: CGFloat(rgb & 0xff) / 255, alpha: 1)
     }
 
     func openTab() { handle(.openTab) }
@@ -110,16 +154,24 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
             view.subviews.filter { $0 !== tabBar }.forEach { $0.removeFromSuperview() }
             active.autoresizingMask = [.width, .height]
             view.addSubview(active)
+            style(active)
         }
         active.frame = NSRect(x: 0, y: 0, width: view.bounds.width, height: view.bounds.height - barHeight)
         view.window?.makeFirstResponder(active)
     }
 
     private func spawnTab(_ id: Int) {
-        let tab = ShellTerminalView(frame: view.bounds)
+        var options = TerminalOptions.default
+        options.scrollback = 10_000
+        options.cursorStyle = .blinkBlock
+        let tab = ShellTerminalView(frame: view.bounds, font: .monospacedSystemFont(ofSize: fontSize, weight: .regular),
+                                    options: options)
         tab.processDelegate = self
         tab.optionAsMetaKey = false // Option composes characters (e.g. "@", "[" on an Italian layout)
-        tab.font = .monospacedSystemFont(ofSize: settingsStore.settings.terminal.fontSize, weight: .regular)
+        style(tab)
+        tab.onAppearanceChange = { [weak self, weak tab] in
+            if let self, let tab { style(tab) }
+        }
         tabViews[id] = tab
         spawnShell(in: tab)
     }
@@ -222,6 +274,7 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
 /// One tab. While `onRetry` is set (a failed start), Return retries and every other key is dropped.
 private final class ShellTerminalView: LocalProcessTerminalView {
     var onRetry: (() -> Void)?
+    var onAppearanceChange: (() -> Void)?
     var spawnedAt = Date.distantPast
     var spawnedShell = ""
 
@@ -230,6 +283,11 @@ private final class ShellTerminalView: LocalProcessTerminalView {
         guard process.running, process.childfd >= 0 else { return false }
         let group = tcgetpgrp(process.childfd)
         return group > 0 && group != process.shellPid
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        onAppearanceChange?()
     }
 
     override func send(source: TerminalView, data: ArraySlice<UInt8>) {

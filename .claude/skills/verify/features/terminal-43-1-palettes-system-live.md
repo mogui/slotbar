@@ -26,3 +26,5 @@ Preconditions: `V launch --terminal`, `V show`, click `Terminal`, type `for i in
 
 - Flipping the system appearance affects the user's whole Mac; always ask, and flip it back.
 - Popups are refused for background clicks; use `oc set-value` on the picker element.
+- Picker labels: Follow system, Solarized Light, Solarized Dark, Dracula, Nord.
+- `system` is its own pair: light bg #ffffff / fg #000000, dark bg #1e1e1e / fg #d4d4d4 (xterm ANSI on both). Hidden tabs repaint when shown.

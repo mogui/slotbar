@@ -25,3 +25,4 @@ Preconditions: `V launch --terminal`, `V show`, click `Terminal`, `Cmd+T`.
 ## Gotchas
 
 - `Cmd+=` on some layouts is `Cmd+Shift+=` (`+`); the mapping should accept both, test both.
+- Steps are 1 pt, clamped 9-36; new tabs open at the live size. A Settings size change replaces the live size.

@@ -94,6 +94,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if NSApp.activationPolicy() != policy { NSApp.setActivationPolicy(policy) }
         slotRegistry.apply(settings) { makeSlotController($0, favicons: favicons, panel: panelController) }
         applyTerminal(settings.terminal.enabled)
+        terminal?.apply(settings.terminal)
         hotkey?.setTerminalEnabled(settings.terminal.enabled)
         panelController.update(settings: settings, controllers: slotRegistry.controllers, terminal: terminal)
         refreshBadges()
