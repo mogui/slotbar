@@ -129,8 +129,12 @@ case "$cmd" in
     echo "terminal:  $(plutil -extract terminal.enabled raw "$(settings_of "$run")" 2>/dev/null || echo '?')"
     echo "windows:"; swift "$here/windows.swift" "$pid" | sed 's/^/  /'
     echo "shells:    $(pgrep -P "$pid" | wc -l | tr -d ' ')"
-    echo "accessibility: $(orca computer get-app-state --app "$bundle_id" --no-screenshot --json 2>/dev/null \
-      | grep -q '"permission_denied"' && echo 'DENIED (no clicks or keys; screenshots and process checks only)' || echo ok)" ;;
+    # ok only when the read succeeds: a hidden Panel (app not listed) or a lost grant both fail it.
+    ax="$(orca computer get-app-state --app "$bundle_id" --no-screenshot --json 2>/dev/null || true)"
+    if echo "$ax" | grep -q '"ok": true'; then echo "accessibility: ok"
+    elif echo "$ax" | grep -q '"permission_denied"'; then
+      echo "accessibility: DENIED (no clicks or keys; screenshots and process checks only)"
+    else echo "accessibility: unknown ($(echo "$ax" | sed -n 's/.*"code": "\([^"]*\)".*/\1/p' | head -1); is the Panel shown?)"; fi ;;
 
   show)
     # A second open of the running app is a reopen event: the AppDelegate shows the Panel.
