@@ -23,6 +23,8 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
     private let tabBar = TerminalTabBarView()
     /// Closing the last tab hides the Panel.
     var onHidePanel: (() -> Void)?
+    /// `anyBell` changed (the Rail's Terminal dot).
+    var onBellChange: (() -> Void)?
 
     init(settingsStore: SettingsStore) {
         self.settingsStore = settingsStore
@@ -115,8 +117,13 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
         if shown != session.isShown { handle(.shown(shown)) }
     }
 
+    /// Some tab rang the bell while not visible.
+    var anyBell: Bool { session.anyBell }
+
     private func handle(_ event: TerminalSession.Event) {
+        let hadBell = session.anyBell
         perform(session.handle(event))
+        if session.anyBell != hadBell { onBellChange?() }
     }
 
     private func perform(_ effects: [TerminalSession.Effect]) {
@@ -172,6 +179,7 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
         tab.onAppearanceChange = { [weak self, weak tab] in
             if let self, let tab { style(tab) }
         }
+        tab.onBell = { [weak self] in self?.handle(.bell(id)) }
         tabViews[id] = tab
         spawnShell(in: tab)
     }
@@ -275,6 +283,7 @@ final class TerminalController: NSObject, LocalProcessTerminalViewDelegate {
 private final class ShellTerminalView: LocalProcessTerminalView {
     var onRetry: (() -> Void)?
     var onAppearanceChange: (() -> Void)?
+    var onBell: (() -> Void)?
     var spawnedAt = Date.distantPast
     var spawnedShell = ""
 
@@ -288,6 +297,12 @@ private final class ShellTerminalView: LocalProcessTerminalView {
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         onAppearanceChange?()
+    }
+
+    /// Called on SwiftTerm's read thread for every BEL; SwiftTerm still beeps.
+    nonisolated override func bell(source: Terminal) {
+        super.bell(source: source)
+        Task { @MainActor [weak self] in self?.onBell?() }
     }
 
     override func send(source: TerminalView, data: ArraySlice<UInt8>) {

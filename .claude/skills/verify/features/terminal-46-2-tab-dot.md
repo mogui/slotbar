@@ -17,9 +17,10 @@ Status: pending
 
 Preconditions: `V launch --terminal`, `V show`, click `Terminal`, `Cmd+T`.
 
-- **Ring.** In tab 2 type `sleep 3; printf '\a'` + Return, then `Cmd+Shift+[` at once. After 4 s `V shot 46-2-dot`: dot on tab 2 (also look for a dot element in `oc get-app-state`).
-- **Clear.** `Cmd+Shift+]`: `V shot 46-2-clear` without the dot.
+- **Ring.** In tab 2 type `sleep 3; printf '\a'` + Return, then `Cmd+Shift+[` at once. After 4 s `V shot 46-2-dot`: accent dot right of tab 2's title; in `oc get-app-state` tab 2's button label reads `<title>, bell`.
+- **Clear.** `Cmd+Shift+]`: `V shot 46-2-clear` without the dot; the AX label loses `, bell`.
 
 ## Gotchas
 
+- The dot is drawn (no subview); the AX label suffix `, bell` is the non-visual proof.
 - `printf '\a'` must run in the tab's own pty; `tput bel` works too. Do not ring from the harness shell.

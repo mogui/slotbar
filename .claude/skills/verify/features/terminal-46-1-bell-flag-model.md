@@ -20,9 +20,10 @@ Status: pending
 
 Preconditions: worktree at the ticket's commit.
 
-- **Unit.** `swift test --filter <SessionModel suite>`: bell cases pass.
+- **Unit.** `swift test --filter TerminalSessionTests`: the `bell...`, `showingTheTerminalClears...`, `selectingAFlaggedTab...` cases pass.
 - **Live.** Covered by terminal-46-2 and 46-3 (the flag is only visible as dots).
 
 ## Gotchas
 
-- None.
+- "Visible" = Panel shown on the Terminal and not on Settings (`PanelController.updateShown` -> `setShown`); key state is ignored, so a bell in the active tab of a shown but non-key Panel sets no flag.
+- SwiftTerm still beeps (NSSound.beep) on every bell; that is expected.

@@ -208,3 +208,55 @@ extension TerminalSessionTests {
         #expect(effects == [.terminateShell(ids[0]), .terminateShell(ids[1]), .terminateShell(ids[2])])
     }
 }
+
+extension TerminalSessionTests {
+    func bells(_ session: TerminalSession) -> [Bool] { session.tabs.map(\.bell) }
+
+    @Test func bellOnAnInactiveTabFlagsIt() {
+        var (session, ids) = threeTabs()
+        _ = session.handle(.shown(true))
+        let effects = session.handle(.bell(ids[0]))
+        #expect(effects.isEmpty)
+        #expect(bells(session) == [true, false, false])
+        #expect(session.anyBell)
+    }
+
+    @Test func bellOnTheActiveTabWhileTheTerminalIsHiddenFlagsIt() {
+        var (session, ids) = threeTabs()
+        _ = session.handle(.bell(ids[2]))
+        #expect(bells(session) == [false, false, true])
+    }
+
+    @Test func bellOnTheVisibleTabSetsNoFlag() {
+        var (session, ids) = threeTabs()
+        _ = session.handle(.shown(true))
+        _ = session.handle(.bell(ids[2]))
+        #expect(bells(session) == [false, false, false])
+        #expect(!session.anyBell)
+    }
+
+    @Test func showingTheTerminalClearsOnlyTheActiveTabsFlag() {
+        var (session, ids) = threeTabs()
+        _ = session.handle(.bell(ids[0]))
+        _ = session.handle(.bell(ids[2]))
+        _ = session.handle(.shown(true))
+        #expect(bells(session) == [true, false, false])
+    }
+
+    @Test func selectingAFlaggedTabClearsItOnlyWhileShown() {
+        var (session, ids) = threeTabs()
+        _ = session.handle(.bell(ids[0]))
+        _ = session.handle(.bell(ids[1]))
+        _ = session.handle(.select(ids[0]))
+        #expect(bells(session) == [true, true, false])
+        _ = session.handle(.shown(true))
+        _ = session.handle(.selectNext)
+        #expect(bells(session) == [false, false, false])
+    }
+
+    @Test func bellOnAnUnknownTabIsIgnored() {
+        var (session, _) = threeTabs()
+        #expect(session.handle(.bell(99)).isEmpty)
+        #expect(!session.anyBell)
+    }
+}

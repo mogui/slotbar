@@ -83,6 +83,10 @@ final class RailView: NSView {
             button.layer?.backgroundColor = item.isActive
                 ? NSColor.controlAccentColor.withAlphaComponent(0.25).cgColor : nil
             if let badge = item.badge { addCapsule(badge, to: button) }
+            if item.bell {
+                addBellDot(to: button)
+                button.setAccessibilityLabel("Terminal, bell")
+            }
             stack.addArrangedSubview(button)
         }
         let gear = iconButton(symbol: "gearshape", tint: .secondaryLabelColor)
@@ -154,6 +158,22 @@ final class RailView: NSView {
             label.widthAnchor.constraint(equalToConstant: max(12, label.intrinsicContentSize.width + 6)),
             label.topAnchor.constraint(equalTo: button.topAnchor),
             label.trailingAnchor.constraint(equalTo: button.trailingAnchor),
+        ])
+    }
+
+    /// Accent dot over the Terminal icon's top trailing corner (Terminal spec, bell dot).
+    private func addBellDot(to button: NSButton) {
+        let dot = NSView()
+        dot.wantsLayer = true
+        dot.layer?.backgroundColor = NSColor.controlAccentColor.cgColor
+        dot.layer?.cornerRadius = 3
+        dot.translatesAutoresizingMaskIntoConstraints = false
+        button.addSubview(dot)
+        NSLayoutConstraint.activate([
+            dot.widthAnchor.constraint(equalToConstant: 6),
+            dot.heightAnchor.constraint(equalToConstant: 6),
+            dot.topAnchor.constraint(equalTo: button.topAnchor, constant: 4),
+            dot.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -4),
         ])
     }
 

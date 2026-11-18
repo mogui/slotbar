@@ -16,13 +16,15 @@ struct RailItem: Equatable {
     var notifications: Bool
     /// The Slot's own badge text (SPEC 8.4); nil when nothing is unread or the Slot is Unloaded.
     var badge: String? = nil
+    /// The Terminal item's bell dot: some Terminal tab rang the bell while not visible.
+    var bell = false
 }
 
 /// One item per Slot in list order, then the Terminal while it is enabled.
 /// Slot tooltip: label (Home host while null), plus `⌘N` for the first nine. `unread` holds loaded Slots only.
 /// Terminal tooltip: "Terminal" plus `terminalHotkey` when one is set.
 func railItems(settings: Settings, activeView: PanelView?, unread: [UUID: UnreadState] = [:],
-               terminalHotkey: String? = nil) -> [RailItem] {
+               terminalHotkey: String? = nil, terminalBell: Bool = false) -> [RailItem] {
     var items = settings.slots.enumerated().map { index, slot in
         let name = slot.label ?? slot.url.host() ?? slot.url.absoluteString
         let color = settings.profiles.first { $0.id == slot.profileId }?.color ?? ""
@@ -35,7 +37,7 @@ func railItems(settings: Settings, activeView: PanelView?, unread: [UUID: Unread
     }
     if settings.terminal.enabled {
         items.append(RailItem(view: .terminal, tooltip: terminalHotkey.map { "Terminal  \($0)" } ?? "Terminal", color: nil,
-                              isActive: activeView == .terminal, notifications: false))
+                              isActive: activeView == .terminal, notifications: false, bell: terminalBell))
     }
     return items
 }

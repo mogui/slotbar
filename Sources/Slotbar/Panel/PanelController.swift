@@ -71,6 +71,7 @@ final class PanelController: NSObject {
         self.controllers = controllers
         self.terminal = terminal
         terminal?.onHidePanel = { [weak self] in self?.hide() }
+        terminal?.onBellChange = { [weak self] in self?.refreshRail() }
         if isShowing && !showsSettings {
             activate(viewToShow(slots: settings.slots, lastActive: activeView, terminalEnabled: terminal != nil))
         } else {
@@ -361,7 +362,7 @@ final class PanelController: NSObject {
         }
         let hotkey = KeyboardShortcuts.getShortcut(for: .toggleTerminal)?.description
         rail.update(items: railItems(settings: settings, activeView: showsSettings ? nil : activeView, unread: unread,
-                                     terminalHotkey: hotkey),
+                                     terminalHotkey: hotkey, terminalBell: terminal?.anyBell ?? false),
                     settingsActive: showsSettings) { [favicons] in favicons.image(for: $0) }
     }
 

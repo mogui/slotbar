@@ -5,6 +5,8 @@ struct TerminalTabItem: Equatable {
     var id: Int
     var title: String
     var isActive: Bool
+    /// The tab rang the bell while not visible: a dot on the tab.
+    var bell: Bool
 }
 
 /// The tab bar's items; empty (no bar) with a single tab, so the shell gets all the space.
@@ -14,7 +16,7 @@ func terminalTabBar(tabs: [TerminalSession.Tab], activeTab: Int,
     guard tabs.count > 1 else { return [] }
     return tabs.map {
         TerminalTabItem(id: $0.id, title: $0.title.isEmpty ? fallbackTitle($0.id) : $0.title,
-                        isActive: $0.id == activeTab)
+                        isActive: $0.id == activeTab, bell: $0.bell)
     }
 }
 
@@ -69,7 +71,7 @@ final class TerminalTabBarView: NSView {
 private final class TabCell: NSView {
     var onSelect: ((Int) -> Void)?
     var onClose: ((Int) -> Void)?
-    private var item = TerminalTabItem(id: 0, title: "", isActive: false)
+    private var item = TerminalTabItem(id: 0, title: "", isActive: false, bell: false)
     private let label = NSTextField(labelWithString: "")
     private let close = NSButton()
 
@@ -109,7 +111,7 @@ private final class TabCell: NSView {
         label.stringValue = item.title
         label.textColor = item.isActive ? .labelColor : .secondaryLabelColor
         toolTip = item.title
-        setAccessibilityLabel(item.title)
+        setAccessibilityLabel(item.bell ? "\(item.title), bell" : item.title)
         setAccessibilitySelected(item.isActive)
         needsDisplay = true
     }
@@ -118,6 +120,10 @@ private final class TabCell: NSView {
         if item.isActive {
             NSColor.controlBackgroundColor.setFill()
             bounds.fill()
+        }
+        if item.bell {
+            NSColor.controlAccentColor.setFill()
+            NSBezierPath(ovalIn: NSRect(x: bounds.maxX - 15, y: bounds.midY - 3, width: 6, height: 6)).fill()
         }
         NSColor.separatorColor.setFill()
         NSRect(x: bounds.maxX - 1, y: 4, width: 1, height: bounds.height - 8).fill()

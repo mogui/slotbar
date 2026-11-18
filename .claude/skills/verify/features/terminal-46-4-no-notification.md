@@ -23,5 +23,7 @@ Preconditions: `V launch --terminal`, `V show`, click `Terminal`.
 
 ## Gotchas
 
+- Code path: bell -> `ShellTerminalView.bell` -> `TerminalController.handle(.bell)` -> `onBellChange` -> `PanelController.refreshRail`; nothing reaches NotificationBridge or BadgeAggregator.
+- A system beep is audible (SwiftTerm default, approved); it is not a notification.
 - The verify copy's notification authorization fails ("Notifications are not allowed for this application"); a missing banner proves nothing, the absence of a post attempt in the code path/logs does.
 - `V shot` skips windows under 60 pt, which includes the status item; use `swift .claude/skills/verify/scripts/windows.swift <pid>` to read its width.

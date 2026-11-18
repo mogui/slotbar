@@ -4,6 +4,8 @@ struct TerminalSession: Sendable {
     struct Tab: Equatable, Sendable {
         let id: Int
         var title = ""
+        /// The tab rang the bell while not visible.
+        var bell = false
     }
 
     enum Event: Equatable, Sendable {
@@ -16,6 +18,7 @@ struct TerminalSession: Sendable {
         case closeConfirmed(Int)
         case shellExited(Int)
         case titleChanged(Int, String)
+        case bell(Int)
         /// The Terminal became visible (Panel shown on it) or stopped being visible.
         case shown(Bool)
         /// The Terminal is being turned off or Slotbar quits; `busy`: the tabs running a foreground process.
@@ -37,7 +40,14 @@ struct TerminalSession: Sendable {
     private(set) var isShown = false
     private var nextId = 1
 
+    /// Some tab rang the bell while not visible (the Rail's Terminal dot).
+    var anyBell: Bool { tabs.contains(where: \.bell) }
+
+    /// A bell flags its tab unless the tab is visible; the visible tab's flag is cleared after every event.
     mutating func handle(_ event: Event) -> [Effect] {
+        defer {
+            if isShown, let i = index(of: activeTab) { tabs[i].bell = false }
+        }
         switch event {
         case .openTab:
             let tab = newTab()
@@ -56,6 +66,9 @@ struct TerminalSession: Sendable {
         case .shellExited(let id): return remove(id, closedByUser: false)
         case .titleChanged(let id, let title):
             if let i = index(of: id) { tabs[i].title = title }
+            return []
+        case .bell(let id):
+            if let i = index(of: id) { tabs[i].bell = true }
             return []
         case .shown(let shown):
             isShown = shown

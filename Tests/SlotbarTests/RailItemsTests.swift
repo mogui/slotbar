@@ -109,4 +109,15 @@ import Testing
         let items = railItems(settings: Self.withTerminal([]), activeView: nil, terminalHotkey: nil)
         #expect(items.map(\.tooltip) == ["Terminal"])
     }
+
+    @Test func terminalItemShowsTheBellDotWhileAnyTabIsFlagged() {
+        let a = Self.slot("https://mail.google.com/", Self.work)
+        let items = railItems(settings: Self.withTerminal([a]), activeView: nil, terminalBell: true)
+        #expect(items.map(\.bell) == [false, true])
+    }
+
+    @Test func terminalItemHasNoBellDotByDefault() {
+        let items = railItems(settings: Self.withTerminal([]), activeView: nil)
+        #expect(items.map(\.bell) == [false])
+    }
 }
